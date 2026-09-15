@@ -53,8 +53,9 @@ uv run tanker-tape collect-ais            # run under systemd/cron, 24/7
 uv run tanker-tape ingest-prices --start 2015-01-01
 uv run tanker-tape ingest-portwatch --dataset chokepoints
 
-# 3. Build the modelling table and look at it
+# 3. Build the modelling table, then look at it
 uv run tanker-tape build-features
+uv run tanker-tape report          # writes reports/research-report-<date>.md
 uv run tanker-tape dashboard
 ```
 
@@ -91,9 +92,14 @@ src/tanker_tape/
 ├── analysis/
 │   ├── event_study.py   abnormal returns around dated events
 │   ├── causality.py     stationarity, VAR, Granger both ways, local projections
-│   └── forecast.py      walk-forward, benchmarks, Diebold-Mariano
+│   ├── forecast.py      walk-forward, benchmarks, Diebold-Mariano
+│   └── report.py        generates the research report
 └── dashboard/app.py     Streamlit
 ```
+
+Scheduling lives in `deploy/` (a hardened systemd unit for the collector, plus a
+deployment guide) and `.github/workflows/` (CI on every push, and a weekly
+Wednesday data pull timed to land after PortWatch's Tuesday release).
 
 Business logic lives in `src/`. Notebooks are for exploration only.
 
@@ -167,8 +173,12 @@ uv run mypy src            # types
 ```
 
 Tests cover gate crossing and direction, MMSI/IMO deduplication, laden classification,
-baseline z-scores, vintage as-of resolution, aisstream parsing, and the no-lookahead
-guarantee.
+baseline z-scores, vintage as-of resolution, aisstream parsing, report generation, and the
+no-lookahead guarantee.
+
+The report generator guards each section independently: if the event study fails, the
+report says so in place and still produces the forecasting results. A partial report that
+names what broke beats a traceback and no report.
 
 ## Limitations
 

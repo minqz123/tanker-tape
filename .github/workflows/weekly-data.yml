@@ -1,0 +1,62 @@
+name: Weekly data pull
+
+# PortWatch publishes weekly on Tuesdays at 09:00 ET. This runs Wednesday
+# 10:00 UTC, comfortably after publication in either US daylight-saving state,
+# so a run always picks up that week's release rather than racing it.
+on:
+  schedule:
+    - cron: "0 10 * * 3"
+  workflow_dispatch:
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install project
+        run: uv sync --extra prices
+
+      - name: Verify endpoints
+        # Schema drift at the source is the most likely way this pipeline breaks
+        # silently, so check before pulling and keep the output in the run log.
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: uv run tanker-tape verify-endpoints
+
+      - name: Pull prices
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: uv run tanker-tape ingest-prices --start 2015-01-01
+
+      - name: Pull PortWatch chokepoints
+        run: uv run tanker-tape ingest-portwatch --dataset chokepoints
+
+      - name: Pull PortWatch ports
+        run: uv run tanker-tape ingest-portwatch --dataset ports
+
+      - name: Summarise
+        run: uv run tanker-tape status
+
+      # The data lake is gitignored on purpose, so the vintages are kept as run
+      # artifacts rather than committed. Artifacts expire; for a durable vintage
+      # history point TANKER_TAPE_DATA_DIR at object storage and sync it here
+      # instead. Losing a vintage is not like losing live AIS - PortWatch can be
+      # re-pulled - but the as-of history is what makes the backtest honest, so
+      # it is worth persisting properly before the research phase.
+      - name: Upload vintages
+        uses: actions/upload-artifact@v4
+        with:
+          name: tanker-tape-data-${{ github.run_id }}
+          path: data/
+          retention-days: 90
+          if-no-files-found: error

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install project
+        # Install every extra so the optional research/dashboard code paths are
+        # import-checked too, not just the core pipeline.
+        run: uv sync --all-extras
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Types
+        run: uv run mypy src
+        continue-on-error: true
+
+      - name: Tests
+        run: uv run pytest -q
+
+      - name: Validate zone geometry
+        # Catches a gate placed outside its zone, or a lat/lon swap in the
+        # aisstream bounding boxes, without needing any network access.
+        run: uv run tanker-tape validate-gates

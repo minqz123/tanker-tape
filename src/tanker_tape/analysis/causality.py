@@ -43,6 +43,27 @@ def stationarity_report(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame
         if len(series) < 20:
             logger.warning("skipping stationarity test for %r: only %d obs", column, len(series))
             continue
+        if series.nunique() <= 1:
+            # ADF and KPSS both raise on a constant series. A constant column is a
+            # real thing to find in this data - a chokepoint with no recorded
+            # transits all period - so report it rather than crashing the report.
+            logger.warning(
+                "column %r is constant (value=%s); reporting it as such rather than testing",
+                column,
+                series.iloc[0],
+            )
+            rows.append(
+                {
+                    "column": column,
+                    "n_obs": len(series),
+                    "adf_stat": float("nan"),
+                    "adf_p": float("nan"),
+                    "kpss_stat": float("nan"),
+                    "kpss_p": float("nan"),
+                    "verdict": "constant",
+                }
+            )
+            continue
 
         with warnings.catch_warnings():
             # adfuller warns about a future return-type change; KPSS warns when its

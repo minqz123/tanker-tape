@@ -1,0 +1,67 @@
+# Live aisstream collector.
+#
+# There is no historical backfill for this source: any hour this unit is not
+# running is an hour of data that cannot ever be recovered. That is why the
+# restart policy is unconditional and has no start-limit burst cap - it is
+# always better to keep retrying than to give up and sit idle.
+#
+# Install:
+#   sudo cp deploy/tanker-tape-collector.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now tanker-tape-collector
+#
+# See deploy/README.md for the full walkthrough.
+
+[Unit]
+Description=Tanker Tape live AIS collector (aisstream.io)
+Documentation=https://github.com/minqz123/tanker-tape
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tankertape
+Group=tankertape
+WorkingDirectory=/opt/tanker-tape
+
+# Secrets live in this file, not in the unit. Keep it chmod 600, owned by the
+# service user. AISSTREAM_API_KEY is the only one the collector needs.
+EnvironmentFile=/etc/tanker-tape/collector.env
+
+ExecStart=/opt/tanker-tape/.venv/bin/tanker-tape collect-ais
+
+# Always come back. A dropped websocket, a provider outage, an OOM kill - none
+# of them are a reason to stop collecting.
+Restart=always
+RestartSec=10
+# Deliberately unlimited: the default burst cap would stop the unit permanently
+# after a handful of fast failures, which is the one outcome to avoid here.
+StartLimitIntervalSec=0
+
+# SIGTERM lets the collector flush its buffers before exiting, so a restart
+# does not discard the rows it has decoded but not yet written.
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tanker-tape-collector
+
+# Hardening. The collector only needs outbound TLS and its own data directory.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tanker-tape/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

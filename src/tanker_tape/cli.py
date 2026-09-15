@@ -302,5 +302,30 @@ def status() -> None:
     console.print(f"[dim]{DISCLAIMER}[/dim]")
 
 
+@app.command()
+def report(
+    output: str | None = typer.Option(None, help="Output path; defaults to reports/."),
+    horizons: str = typer.Option("1,5,20", help="Comma-separated forecast horizons in days."),
+    min_train: int = typer.Option(500, help="Minimum training rows before walk-forward starts."),
+) -> None:
+    """Generate the research report from the built feature table.
+
+    Sections are independently guarded, so a failure in one (say the event study)
+    reports itself in place rather than losing the rest of the report.
+    """
+    from .analysis.report import generate_report
+    from .storage import read_processed
+
+    try:
+        table = read_processed("features_daily")
+    except FileNotFoundError:
+        console.print("[red]No feature table found. Run `tanker-tape build-features` first.[/red]")
+        raise typer.Exit(1) from None
+
+    parsed = tuple(int(value) for value in horizons.split(",") if value.strip())
+    path = generate_report(table, output_path=output, horizons=parsed, min_train=min_train)
+    console.print(f"[green]Wrote report[/green] to {path}")
+
+
 if __name__ == "__main__":
     app()

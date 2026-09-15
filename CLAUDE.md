@@ -30,9 +30,11 @@ src/tanker_tape/
   process/transits.py     gate-line crossing detection
   process/vessel_state.py laden/ballast, waiting/anchored, dark gaps, DQ flags
   process/features.py     daily feature table
-  analysis/               event_study, causality, forecast
+  analysis/               event_study, causality, forecast, report
   dashboard/app.py        Streamlit
 config/                 zones.yaml (gates/polygons), ports.yaml
+deploy/                 hardened systemd unit + deployment guide for the collector
+.github/workflows/      CI on push; weekly PortWatch/price pull on Wednesdays
 data/{raw,interim,processed,reference}/   gitignored except reference/
 ```
 
@@ -120,6 +122,7 @@ uv run tanker-tape ingest-prices --start 2015-01-01
 uv run tanker-tape ingest-portwatch --dataset chokepoints
 uv run tanker-tape collect-ais             # long-running; run under systemd/cron
 uv run tanker-tape build-features
+uv run tanker-tape report                  # research report -> reports/
 uv run pytest
 uv run ruff check .
 ```
