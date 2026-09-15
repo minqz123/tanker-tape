@@ -254,14 +254,86 @@ def build_features(
         raise typer.Exit(1)
 
     daily = chokepoints.rename(columns={"chokepoint_id": "zone_key"})
+
+    # Ports are optional: that vintage may not have been pulled yet.
+    port_daily, port_column = None, None
+    try:
+        port_daily = read_vintage("portwatch_ports", as_of=cutoff)
+        port_column = next(
+            (
+                column
+                for column in ("n_tanker", "n_total", "portcalls_tanker")
+                if column in port_daily.columns
+            ),
+            None,
+        )
+        if port_column is None:
+            console.print(
+                "[yellow]Port vintage found but no recognised tanker measure; "
+                f"available: {sorted(port_daily.columns)}[/yellow]"
+            )
+            port_daily = None
+    except FileNotFoundError:
+        console.print("[dim]No PortWatch port vintage yet; skipping port-group features.[/dim]")
+
+    # Our own AIS metrics are optional too, and only exist once the collector has run.
+    ais_daily = None
+    try:
+        ais_daily = read_processed("ais_daily")
+    except FileNotFoundError:
+        console.print(
+            "[dim]No collected-AIS metrics yet; run `tanker-tape build-ais-metrics` "
+            "once the collector has data.[/dim]"
+        )
+
     table = build_feature_table(
         prices,
         daily,
         value_columns=(count_column,),
         respect_publication_lag=respect_publication_lag,
+        port_daily=port_daily,
+        port_value_column=port_column,
+        ais_daily=ais_daily,
     )
     path = write_processed(table, "features_daily")
     console.print(f"[green]Wrote {len(table)} rows x {table.shape[1]} columns[/green] to {path}")
+
+
+@app.command("build-ais-metrics")
+def build_ais_metrics_command(
+    start: str | None = typer.Option(None, help="First collection date to read (YYYY-MM-DD)."),
+    end: str | None = typer.Option(None, help="Last collection date to read (YYYY-MM-DD)."),
+    laden_threshold: float = typer.Option(0.75, help="Laden ratio cutoff; calibrate this."),
+) -> None:
+    """Turn collected raw AIS into daily per-zone metrics.
+
+    Produces transit counts, the waiting fleet, laden share, dark gaps and the
+    data-quality/collector-uptime summary the dashboard reads. Run it after the
+    collector has been going for a while; it needs raw partitions to work on.
+    """
+    from .process.ais_metrics import build_ais_metrics
+
+    tables = build_ais_metrics(
+        start=dt.date.fromisoformat(start) if start else None,
+        end=dt.date.fromisoformat(end) if end else None,
+        laden_threshold=laden_threshold,
+    )
+
+    if all(frame is None or frame.empty for frame in tables.values()):
+        console.print(
+            "[red]No metrics produced - no collected AIS found.[/red]\n"
+            "Is the collector running? See deploy/README.md. There is no backfill "
+            "for this source, so gaps cannot be recovered later."
+        )
+        raise typer.Exit(1)
+
+    summary = Table(title="AIS metrics written")
+    summary.add_column("Table")
+    summary.add_column("Rows", justify="right")
+    for name, frame in tables.items():
+        stored = name if name.startswith("ais_") else f"ais_{name}"
+        summary.add_row(stored, str(len(frame)) if frame is not None else "0")
+    console.print(summary)
 
 
 @app.command()

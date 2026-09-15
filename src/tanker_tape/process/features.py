@@ -335,6 +335,162 @@ def _forward_fill_published(table: pd.DataFrame, columns: list[str]) -> pd.DataF
     return out
 
 
+def resolve_configured_ports(
+    port_daily: pd.DataFrame,
+    ports: dict[str, object] | None = None,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Match configured ports to the IDs present in a PortWatch vintage.
+
+    Resolution prefers an explicit ``portwatch_id`` from ``config/ports.yaml`` and
+    falls back to a case-insensitive name match on ``match_name``.
+
+    A port that cannot be resolved is **reported and excluded**, never treated as
+    zero activity. A terminal that has gone quiet and a terminal we failed to look
+    up produce the same number otherwise, and during a supply disruption those mean
+    opposite things.
+
+    Args:
+        port_daily: Normalised daily port table with ``port_id`` and ``port_name``.
+        ports: Port config; loaded from ``config/ports.yaml`` when omitted.
+
+    Returns:
+        ``(mapping, unresolved)`` where ``mapping`` has columns ``port_id``,
+        ``port_key`` and ``group``, and ``unresolved`` lists the config keys that
+        found no match.
+    """
+    from ..config import load_ports
+
+    configured = ports if ports is not None else load_ports()
+    if port_daily is None or port_daily.empty:
+        return pd.DataFrame(columns=["port_id", "port_key", "group"]), list(configured)
+
+    names = port_daily.loc[:, ["port_id", "port_name"]].drop_duplicates()
+    lowered = names["port_name"].str.lower()
+
+    rows, unresolved = [], []
+    for key, port in configured.items():
+        identifier = getattr(port, "portwatch_id", None)
+        if identifier and (names["port_id"] == identifier).any():
+            matched = names[names["port_id"] == identifier]
+        else:
+            matched = names[lowered.str.contains(port.match_name.lower(), regex=False, na=False)]
+
+        if matched.empty:
+            unresolved.append(key)
+            continue
+        if len(matched) > 1:
+            logger.warning(
+                "port %r matched %d PortWatch entries (%s); using all of them. Pin a "
+                "portwatch_id in config/ports.yaml if that is wrong.",
+                key,
+                len(matched),
+                ", ".join(matched["port_name"].head(5)),
+            )
+        for port_id in matched["port_id"]:
+            rows.append({"port_id": port_id, "port_key": key, "group": port.group})
+
+    if unresolved:
+        logger.warning(
+            "%d configured port(s) could not be resolved and are EXCLUDED, not zeroed: %s. "
+            "Run `tanker-tape resolve-ids port` to find their real IDs.",
+            len(unresolved),
+            ", ".join(unresolved),
+        )
+    mapping = pd.DataFrame(rows, columns=["port_id", "port_key", "group"])
+    logger.info(
+        "stage=features.resolve_ports resolved=%d unresolved=%d",
+        mapping["port_key"].nunique(),
+        len(unresolved),
+    )
+    return mapping, unresolved
+
+
+def build_port_group_daily(
+    port_daily: pd.DataFrame,
+    value_column: str,
+    ports: dict[str, object] | None = None,
+) -> pd.DataFrame:
+    """Aggregate configured ports into daily totals per group.
+
+    Grouping is what makes this readable: ``gulf_export`` versus ``red_sea_export``
+    versus ``outside_hormuz`` is the comparison that shows crude being pushed around
+    a blocked chokepoint rather than simply disappearing.
+
+    Args:
+        port_daily: Normalised daily port table.
+        value_column: Measure to sum, e.g. a tanker port-call count.
+        ports: Port config; loaded from disk when omitted.
+
+    Returns:
+        Columns ``date``, ``port_group`` and ``value_column``.
+    """
+    mapping, _ = resolve_configured_ports(port_daily, ports)
+    if mapping.empty or value_column not in port_daily.columns:
+        if value_column not in (port_daily.columns if port_daily is not None else []):
+            logger.warning(
+                "port measure %r not found in the vintage; available: %s",
+                value_column,
+                sorted(port_daily.columns) if port_daily is not None else [],
+            )
+        return pd.DataFrame(columns=["date", "port_group", value_column])
+
+    joined = port_daily.merge(mapping, on="port_id", how="inner")
+    grouped = (
+        joined.groupby(["date", "group"], as_index=False)[value_column]
+        .sum()
+        .rename(columns={"group": "port_group"})
+        .sort_values(["date", "port_group"])
+        .reset_index(drop=True)
+    )
+    log_stage(logger, "features.port_groups", grouped, groups=grouped["port_group"].nunique())
+    return grouped
+
+
+def _widen_daily(
+    long_frame: pd.DataFrame,
+    group_column: str,
+    respect_publication_lag: bool,
+    prefix: str = "",
+) -> tuple[pd.DataFrame, list[str]]:
+    """Collapse a long per-group daily frame into one wide row per date.
+
+    Args:
+        long_frame: Long frame with ``date``, ``group_column`` and measures.
+        group_column: Column identifying the series (zone, port group, ...).
+        respect_publication_lag: Move each row to its publication date first.
+        prefix: Prepended to every generated column name, so PortWatch-derived and
+            self-collected measures for the same chokepoint do not collide.
+
+    Returns:
+        ``(wide_frame, generated_column_names)``.
+    """
+    if long_frame is None or long_frame.empty:
+        return pd.DataFrame(), []
+
+    frame = (
+        apply_publication_lag(long_frame)
+        if respect_publication_lag
+        else long_frame.assign(available_from=long_frame["date"])
+    )
+    measures = [
+        column for column in frame.columns if column not in {"date", group_column, "available_from"}
+    ]
+    if not measures:
+        return pd.DataFrame(), []
+
+    # Several observation dates can share one publication date; keep the most recent.
+    collapsed = (
+        frame.sort_values("date").groupby(["available_from", group_column], as_index=False).last()
+    )
+    # unstack rather than pivot_table: pivot_table silently drops a value column that is
+    # entirely NaN, which would make a feature vanish from the table without a word.
+    wide = collapsed.set_index(["available_from", group_column])[measures].unstack(group_column)
+    wide.columns = [f"{prefix}{group}_{measure}" for measure, group in wide.columns]
+    columns = list(wide.columns)
+    wide = wide.reset_index().rename(columns={"available_from": "date"})
+    return wide, columns
+
+
 def build_feature_table(
     prices: pd.DataFrame,
     chokepoint_daily: pd.DataFrame,
@@ -343,63 +499,102 @@ def build_feature_table(
     value_columns: tuple[str, ...] = ("n_transits",),
     respect_publication_lag: bool = True,
     forward_fill: bool = True,
+    port_daily: pd.DataFrame | None = None,
+    port_value_column: str | None = None,
+    ais_daily: pd.DataFrame | None = None,
+    ais_value_columns: tuple[str, ...] = ("n_transits", "n_waiting", "laden_share"),
 ) -> pd.DataFrame:
-    """Assemble the modelling table: one row per date, prices joined to AIS features.
+    """Assemble the modelling table: one row per date, prices joined to every feature.
 
-    AIS features are joined on ``available_from`` rather than ``date`` when
-    ``respect_publication_lag`` is set, so each row contains only what a user could have
-    read that morning.
+    Three families of feature are joined here, and they are treated differently on
+    purpose:
+
+    * **PortWatch chokepoints and ports** are joined on publication date and carried
+      forward, because a weekly release remains the latest known value until the next
+      one lands.
+    * **Cross-route shares** (Cape of Good Hope versus Suez) derive from the same
+      PortWatch data and inherit the same lag.
+    * **Our own AIS metrics** are available the same day, so they take no publication
+      lag — and they are deliberately **not** carried forward. A missing day there
+      means the collector was down, and filling it would invent traffic that was
+      never observed, which is a different kind of claim from "last week's published
+      figure still stands".
 
     Args:
         prices: Output of :func:`tanker_tape.ingest.prices.build_price_panel`.
-        chokepoint_daily: Long frame with ``date``, ``zone_key`` and the value columns.
-        waiting_daily: Optional output of :func:`daily_waiting_fleet`.
+        chokepoint_daily: PortWatch chokepoint table with ``date`` and ``zone_key``.
+        waiting_daily: Optional standalone waiting-fleet table.
         events: Optional event table; loaded from disk when omitted.
-        value_columns: AIS measures to build baselines for.
-        respect_publication_lag: Join on publication date rather than observation date.
-            Only set False for exploratory plots, never for forecasting.
-        forward_fill: Carry each published value forward until the next publication, and
-            add ``*_age_days`` columns recording how stale it is. See
-            :func:`_forward_fill_published` for why this is not lookahead.
+        value_columns: PortWatch measures to build baselines for.
+        respect_publication_lag: Join PortWatch features on publication date. Only
+            set False for exploratory plots, never for forecasting.
+        forward_fill: Carry published values forward, with ``*_age_days`` columns.
+        port_daily: Optional PortWatch port table with ``port_id``/``port_name``.
+        port_value_column: Port measure to aggregate by group.
+        ais_daily: Optional output of
+            :func:`tanker_tape.process.ais_metrics.compute_ais_metrics`.
+        ais_value_columns: Self-collected measures to build baselines for.
 
     Returns:
         The wide daily feature table.
     """
-    chokepoint = add_baseline_features(
-        chokepoint_daily, list(value_columns), group_column="zone_key"
-    )
-
-    if respect_publication_lag:
-        chokepoint = apply_publication_lag(chokepoint)
-        join_column = "available_from"
-    else:
+    if not respect_publication_lag:
         logger.warning(
             "respect_publication_lag=False - features will contain data published after "
             "the row date. Exploratory use only; never forecast on this table."
         )
-        chokepoint = chokepoint.assign(available_from=chokepoint["date"])
-        join_column = "available_from"
 
-    feature_columns = [
-        column
-        for column in chokepoint.columns
-        if column not in {"date", "zone_key", "available_from"}
-    ]
-    # Several observation dates can share one publication date; keep the most recent.
-    collapsed = (
-        chokepoint.sort_values("date").groupby([join_column, "zone_key"], as_index=False).last()
+    table = prices.copy()
+    published_columns: list[str] = []
+
+    chokepoint = add_baseline_features(
+        chokepoint_daily, list(value_columns), group_column="zone_key"
     )
-    # unstack rather than pivot_table: pivot_table silently drops a value column that is
-    # entirely NaN, which would make a feature vanish from the table without a word.
-    wide = collapsed.set_index([join_column, "zone_key"])[feature_columns].unstack("zone_key")
-    wide.columns = [f"{zone}_{measure}" for measure, zone in wide.columns]
-    ais_columns = list(wide.columns)
-    wide = wide.reset_index().rename(columns={join_column: "date"})
+    wide, columns = _widen_daily(chokepoint, "zone_key", respect_publication_lag)
+    if not wide.empty:
+        table = table.merge(wide, on="date", how="left")
+        published_columns.extend(columns)
 
-    table = prices.merge(wide, on="date", how="left")
+    cross_route = add_cross_route_features(chokepoint_daily, value_columns[0])
+    if not cross_route.empty and cross_route.shape[1] > 1:
+        # Give it a group column so the same lag/widen path applies.
+        as_long = cross_route.assign(_route="cross")
+        wide, columns = _widen_daily(as_long, "_route", respect_publication_lag)
+        if not wide.empty:
+            table = table.merge(wide, on="date", how="left")
+            published_columns.extend(columns)
 
-    if forward_fill and ais_columns:
-        table = _forward_fill_published(table, ais_columns)
+    if port_daily is not None and port_value_column:
+        groups = build_port_group_daily(port_daily, port_value_column)
+        if not groups.empty:
+            groups = add_baseline_features(groups, [port_value_column], group_column="port_group")
+            wide, columns = _widen_daily(
+                groups, "port_group", respect_publication_lag, prefix="port_"
+            )
+            if not wide.empty:
+                table = table.merge(wide, on="date", how="left")
+                published_columns.extend(columns)
+
+    if forward_fill and published_columns:
+        table = _forward_fill_published(table, published_columns)
+
+    if ais_daily is not None and not ais_daily.empty:
+        measures = [column for column in ais_value_columns if column in ais_daily.columns]
+        if measures:
+            own = add_baseline_features(ais_daily, measures, group_column="zone_key")
+            # respect_publication_lag=False: this is our own collection, readable today.
+            wide, columns = _widen_daily(own, "zone_key", False, prefix="ais_")
+            if not wide.empty:
+                table = table.merge(wide, on="date", how="left")
+                logger.info(
+                    "stage=features.ais_merge columns=%d note=not_forward_filled", len(columns)
+                )
+        else:
+            logger.warning(
+                "none of %s present in ais_daily; available: %s",
+                list(ais_value_columns),
+                sorted(ais_daily.columns),
+            )
 
     if waiting_daily is not None and not waiting_daily.empty:
         waiting = waiting_daily.pivot_table(
@@ -420,5 +615,6 @@ def build_feature_table(
         table,
         columns=table.shape[1],
         publication_lag=respect_publication_lag,
+        published_features=len(published_columns),
     )
     return table

@@ -88,8 +88,14 @@ def discover_columns(table: pd.DataFrame) -> dict[str, list[str]]:
         and not column.endswith("_age_days")
     ]
     targets = [column for column in table.columns if "_fwd_ret_" in column]
+    # Strip the source prefixes so a chokepoint covered by both PortWatch and our own
+    # collection is listed once, not as "hormuz" and "ais_hormuz".
     zones = sorted(
-        {column.split("_n_transits")[0] for column in table.columns if "_n_transits" in column}
+        {
+            column.split("_n_transits")[0].removeprefix("ais_").removeprefix("port_")
+            for column in table.columns
+            if "_n_transits" in column
+        }
     )
     return {
         "price_features": price_features,

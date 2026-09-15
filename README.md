@@ -53,7 +53,10 @@ uv run tanker-tape collect-ais            # run under systemd/cron, 24/7
 uv run tanker-tape ingest-prices --start 2015-01-01
 uv run tanker-tape ingest-portwatch --dataset chokepoints
 
-# 3. Build the modelling table, then look at it
+# 3. Turn collected AIS into daily metrics (once the collector has data)
+uv run tanker-tape build-ais-metrics
+
+# 4. Build the modelling table, then look at it
 uv run tanker-tape build-features
 uv run tanker-tape report          # writes reports/research-report-<date>.md
 uv run tanker-tape dashboard
@@ -88,6 +91,7 @@ src/tanker_tape/
 ├── process/
 │   ├── transits.py      gate-line crossing detection
 │   ├── vessel_state.py  laden/ballast, waiting fleet, dark gaps, quality flags
+│   ├── ais_metrics.py   raw collected AIS -> daily per-zone metrics
 │   └── features.py      daily feature table (leakage rules live here)
 ├── analysis/
 │   ├── event_study.py   abnormal returns around dated events
@@ -124,6 +128,26 @@ closure: ships that cannot transit pile up rather than disappear.
 **Data quality.** Implied speeds over 40 knots, positions shared by many MMSIs at one
 timestamp (the GPS-jamming signature), and AIS silences over 12 hours inside a zone. Every
 one of these is flagged and counted, never silently dropped.
+
+### Three feature families, treated differently
+
+The feature table joins three kinds of input, and the difference between them is a
+correctness question rather than a stylistic one:
+
+| Source | Lag | Carried forward? |
+|---|---|---|
+| PortWatch chokepoints and ports | publication date (weekly, Tuesdays) | yes, with `*_age_days` |
+| Cross-route shares (Cape vs Suez) | inherits the PortWatch lag | yes |
+| Our own AIS metrics (`ais_*`) | none — readable the same day | **no** |
+
+Carrying a PortWatch value forward asserts "last week's published figure is still the
+latest one," which is true. Carrying our own AIS forward would assert "yesterday's
+traffic also happened today," which is false — a gap there means the collector was
+down, and filling it would invent observations. So `ais_*` columns stay sparse, and
+`ais_quality_daily.hours_with_data` is how you tell a quiet day from a missed one.
+
+Columns are prefixed by source (`hormuz_n_transits` from PortWatch,
+`ais_hormuz_n_transits` from our own collection) so the two never silently merge.
 
 ## The leakage rules
 

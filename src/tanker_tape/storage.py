@@ -192,6 +192,68 @@ def append_partition(frame: pd.DataFrame, dataset: str, partition: str) -> Path:
     return target
 
 
+def read_partitions(
+    dataset: str,
+    start: dt.date | None = None,
+    end: dt.date | None = None,
+) -> pd.DataFrame:
+    """Read the hourly partitions the live collector writes.
+
+    Layout is ``raw/<dataset>/<YYYY-MM-DD>/<HH>/part-*.parquet``, matching
+    :func:`append_partition`. Dates are filtered from the directory names rather
+    than by reading every file, so a narrow window stays cheap on a lake holding
+    months of collection.
+
+    Args:
+        dataset: Dataset name, e.g. ``"ais_positions"``.
+        start: Inclusive first date to read.
+        end: Inclusive last date to read.
+
+    Returns:
+        The concatenated frame, or an empty frame when nothing matches.
+    """
+    root = raw_dir(dataset)
+    if not root.exists():
+        logger.warning("no partitions for dataset %r at %s", dataset, root)
+        return pd.DataFrame()
+
+    selected = []
+    skipped = 0
+    for parquet in sorted(root.glob("*/*/*.parquet")):
+        day = parquet.parent.parent.name
+        try:
+            parsed = dt.date.fromisoformat(day)
+        except ValueError:
+            skipped += 1
+            continue
+        if start is not None and parsed < start:
+            continue
+        if end is not None and parsed > end:
+            continue
+        selected.append(parquet)
+
+    if skipped:
+        logger.warning(
+            "ignored %d file(s) under %s whose parent directory is not a YYYY-MM-DD date",
+            skipped,
+            root,
+        )
+    if not selected:
+        logger.warning("dataset %r has no partitions between %s and %s", dataset, start, end)
+        return pd.DataFrame()
+
+    frame = pd.concat([pd.read_parquet(path) for path in selected], ignore_index=True)
+    logger.info(
+        "stage=storage.read_partitions dataset=%s files=%d rows=%d start=%s end=%s",
+        dataset,
+        len(selected),
+        len(frame),
+        start,
+        end,
+    )
+    return frame
+
+
 def duckdb_connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     """Open the DuckDB catalogue, creating the file and its directory if needed."""
     path = get_settings().duckdb_path

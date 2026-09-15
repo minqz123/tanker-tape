@@ -29,6 +29,7 @@ src/tanker_tape/
   ingest/aisstream.py async websocket collector
   process/transits.py     gate-line crossing detection
   process/vessel_state.py laden/ballast, waiting/anchored, dark gaps, DQ flags
+  process/ais_metrics.py  raw collected AIS -> daily per-zone metrics
   process/features.py     daily feature table
   analysis/               event_study, causality, forecast, report
   dashboard/app.py        Streamlit
@@ -62,6 +63,10 @@ These are enforced in code and covered by tests. Do not weaken them.
 - As-of vintages used. Every PortWatch pull is stamped `retrieved_at`; analysis reads
   `as_of=` rather than "latest".
 - Hyperparameters tuned only inside training folds.
+- PortWatch-derived features are lagged to publication date and carried forward with an
+  age column. **Self-collected AIS features (`ais_*`) are same-day and are never carried
+  forward** — a gap there means the collector was down, and filling it would invent
+  traffic that was never observed.
 
 The regression test for this is `tests/test_no_lookahead.py`: perturbing a future
 observation must not change any feature value at or before the perturbation date.
@@ -121,6 +126,7 @@ uv run tanker-tape verify-endpoints        # do this first, on a networked machi
 uv run tanker-tape ingest-prices --start 2015-01-01
 uv run tanker-tape ingest-portwatch --dataset chokepoints
 uv run tanker-tape collect-ais             # long-running; run under systemd/cron
+uv run tanker-tape build-ais-metrics        # collected AIS -> daily metrics
 uv run tanker-tape build-features
 uv run tanker-tape report                  # research report -> reports/
 uv run pytest
