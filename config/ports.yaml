@@ -1,0 +1,80 @@
+# Crude export/import terminals tracked from PortWatch's daily port activity table.
+#
+# portwatch_id is UNVERIFIED for every entry below: the PortWatch ports table could
+# not be reached from the build container. `match_name` is what the resolver searches
+# for in the live table's portname field. Run `tanker-tape verify-endpoints` to fill
+# the IDs in, and record what it finds in CLAUDE.md.
+#
+# A port whose ID cannot be resolved is SKIPPED WITH A WARNING, never silently
+# treated as zero — a missing terminal and an idle terminal are very different facts.
+
+ports:
+  - key: ras_tanura
+    name: Ras Tanura
+    match_name: Ras Tanura
+    country: SAU
+    group: gulf_export
+    portwatch_id: null
+
+  - key: juaymah
+    name: Juaymah
+    match_name: Juaymah
+    country: SAU
+    group: gulf_export
+    portwatch_id: null
+
+  - key: yanbu
+    name: Yanbu
+    match_name: Yanbu
+    country: SAU
+    group: red_sea_export # the East-West pipeline outlet; watch vs Gulf loadings
+    portwatch_id: null
+
+  - key: fujairah
+    name: Fujairah
+    match_name: Fujairah
+    country: ARE
+    group: outside_hormuz # bunkering + the Hormuz-bypass outlet
+    portwatch_id: null
+
+  - key: basrah
+    name: Basrah
+    match_name: Basrah
+    country: IRQ
+    group: gulf_export
+    portwatch_id: null
+
+  - key: kharg
+    name: Kharg Island
+    match_name: Kharg
+    country: IRN
+    group: gulf_export
+    portwatch_id: null
+
+  - key: novorossiysk
+    name: Novorossiysk
+    match_name: Novorossiysk
+    country: RUS
+    group: black_sea_export
+    portwatch_id: null
+
+  - key: primorsk
+    name: Primorsk
+    match_name: Primorsk
+    country: RUS
+    group: baltic_export
+    portwatch_id: null
+
+  - key: corpus_christi
+    name: Corpus Christi
+    match_name: Corpus Christi
+    country: USA
+    group: us_gulf_export
+    portwatch_id: null
+
+  - key: houston
+    name: Houston
+    match_name: Houston
+    country: USA
+    group: us_gulf_export
+    portwatch_id: null

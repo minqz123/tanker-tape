@@ -1,0 +1,82 @@
+# Chokepoint definitions: gate line + surrounding zone polygon.
+#
+# COORDINATE ORDER: every pair below is [longitude, latitude], matching shapely's
+# (x, y) convention. aisstream expects [latitude, longitude] bounding boxes; that
+# conversion happens in code (config.Zone.aisstream_bounding_box) and is unit-tested,
+# so never hand-swap coordinates here.
+#
+# A transit is recorded when consecutive position reports for one MMSI fall on
+# opposite sides of `gate`. The side function is signed: crossing INTO the positive
+# half-plane is `direction_positive`, crossing out of it is `direction_negative`.
+#
+# CALIBRATION WARNING: these gate lines and polygons are approximations placed from
+# published narrowest-point geography, not from traffic separation scheme charts or
+# an observed transit distribution. Before trusting transit counts, plot a week of
+# collected positions over the gate and confirm (a) the gate actually spans the
+# navigable channel and (b) counts are in the right order of magnitude versus
+# PortWatch. See `tanker-tape validate-gates`.
+
+chokepoints:
+  hormuz:
+    name: Strait of Hormuz
+    portwatch_id: chokepoint6 # UNVERIFIED - from the brief; confirm with verify-endpoints
+    gate: [[56.53, 26.50], [56.36, 26.85]] # Great Quoin Is. (OM) -> Larak Is. (IR)
+    direction_positive: inbound # into the Persian Gulf
+    direction_negative: outbound # out to the Gulf of Oman
+    zone: [[55.60, 25.60], [57.30, 25.60], [57.30, 27.20], [55.60, 27.20]]
+    collect_live: true
+
+  bab_el_mandeb:
+    name: Bab el-Mandeb
+    portwatch_id: null
+    gate: [[43.20, 12.45], [43.48, 12.70]] # Djibouti side -> Yemen side
+    direction_positive: northbound # into the Red Sea
+    direction_negative: southbound # into the Gulf of Aden
+    zone: [[42.60, 11.80], [44.20, 11.80], [44.20, 13.40], [42.60, 13.40]]
+    collect_live: true
+
+  suez:
+    name: Suez Canal
+    portwatch_id: null
+    gate: [[32.30, 30.50], [32.42, 30.50]] # across the canal near the Bitter Lakes
+    direction_positive: northbound # toward Port Said / Mediterranean
+    direction_negative: southbound # toward Suez / Red Sea
+    zone: [[32.20, 29.90], [32.65, 29.90], [32.65, 31.30], [32.20, 31.30]]
+    collect_live: true
+
+  cape_of_good_hope:
+    name: Cape of Good Hope
+    portwatch_id: null
+    # Not a strait: a meridian gate south of Cape Point that rounding traffic crosses.
+    gate: [[18.47, -34.36], [18.47, -37.50]]
+    direction_positive: eastbound # Atlantic -> Indian Ocean
+    direction_negative: westbound # Indian Ocean -> Atlantic
+    zone: [[17.00, -38.00], [20.00, -38.00], [20.00, -33.80], [17.00, -33.80]]
+    collect_live: false
+
+  malacca:
+    name: Strait of Malacca
+    portwatch_id: null
+    gate: [[101.25, 3.05], [100.55, 2.45]] # Malaysia coast -> Sumatra, near One Fathom Bank
+    direction_positive: southeastbound # toward Singapore
+    direction_negative: northwestbound # toward the Andaman Sea
+    zone: [[99.80, 1.80], [102.00, 1.80], [102.00, 3.80], [99.80, 3.80]]
+    collect_live: false
+
+  bosporus:
+    name: Bosporus Strait
+    portwatch_id: null
+    gate: [[29.00, 41.10], [29.12, 41.10]]
+    direction_positive: northbound # into the Black Sea
+    direction_negative: southbound # into the Sea of Marmara
+    zone: [[28.90, 40.90], [29.30, 40.90], [29.30, 41.40], [28.90, 41.40]]
+    collect_live: false
+
+  panama:
+    name: Panama Canal
+    portwatch_id: null
+    gate: [[-79.80, 9.15], [-79.68, 9.10]]
+    direction_positive: northbound # toward Colon / Caribbean
+    direction_negative: southbound # toward Balboa / Pacific
+    zone: [[-80.10, 8.70], [-79.40, 8.70], [-79.40, 9.50], [-80.10, 9.50]]
+    collect_live: false

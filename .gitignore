@@ -1,0 +1,34 @@
+# Secrets
+.env
+.env.local
+
+# Data lake: everything except the hand-maintained reference tables
+data/raw/
+data/interim/
+data/processed/
+data/*.duckdb
+data/*.duckdb.wal
+!data/reference/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Generated research output
+reports/*.html
+reports/*.md
+!reports/.gitkeep
+
+# OS
+.DS_Store
