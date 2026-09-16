@@ -309,7 +309,9 @@ def plot_price_and_flows(
         bottom.plot(
             flows["date"], smoothed, color=theme.series_2, linewidth=1.8, solid_capstyle="round"
         )
-        label = f"{flow_label} (daily, {smooth_days}-day mean)"
+        # Short label: the title already names the chokepoint, and repeating it here
+        # produced an axis label long enough to overflow into the sources footer.
+        label = f"Tanker transit calls ({smooth_days}-day mean)"
     else:
         bottom.text(
             0.5,
@@ -321,7 +323,7 @@ def plot_price_and_flows(
             color=theme.text_secondary,
             fontsize=10,
         )
-        label = flow_label
+        label = "Tanker transit calls"
     _style_axes(bottom, theme, label)
 
     _draw_events(top, events, theme, label=True)
@@ -329,7 +331,7 @@ def plot_price_and_flows(
 
     figure.text(
         0.008,
-        0.015,
+        0.025,
         "Sources: EIA/FRED (Brent), IMF PortWatch (transits). Research project — not investment advice.",
         color=theme.text_secondary,
         fontsize=7.5,
@@ -337,7 +339,7 @@ def plot_price_and_flows(
     # Explicit spacing rather than tight_layout: the event labels mix data and
     # axes-fraction transforms, which tight_layout cannot measure - it warns and may
     # lay the figure out wrongly.
-    figure.subplots_adjust(left=0.085, right=0.985, top=0.90, bottom=0.10)
+    figure.subplots_adjust(left=0.095, right=0.985, top=0.90, bottom=0.13)
     return figure
 
 

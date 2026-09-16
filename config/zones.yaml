@@ -19,7 +19,7 @@
 chokepoints:
   hormuz:
     name: Strait of Hormuz
-    portwatch_id: chokepoint6 # UNVERIFIED - from the brief; confirm with verify-endpoints
+    portwatch_id: chokepoint6 # CONFIRMED live 2026-09-16 against the PortWatch directory
     gate: [[56.53, 26.50], [56.36, 26.85]] # Great Quoin Is. (OM) -> Larak Is. (IR)
     direction_positive: inbound # into the Persian Gulf
     direction_negative: outbound # out to the Gulf of Oman
@@ -28,7 +28,7 @@ chokepoints:
 
   bab_el_mandeb:
     name: Bab el-Mandeb
-    portwatch_id: null
+    portwatch_id: chokepoint4 # Bab el-Mandeb Strait, confirmed 2026-09-16
     gate: [[43.20, 12.45], [43.48, 12.70]] # Djibouti side -> Yemen side
     direction_positive: northbound # into the Red Sea
     direction_negative: southbound # into the Gulf of Aden
@@ -37,7 +37,7 @@ chokepoints:
 
   suez:
     name: Suez Canal
-    portwatch_id: null
+    portwatch_id: chokepoint1 # Suez Canal, confirmed 2026-09-16
     gate: [[32.30, 30.50], [32.42, 30.50]] # across the canal near the Bitter Lakes
     direction_positive: northbound # toward Port Said / Mediterranean
     direction_negative: southbound # toward Suez / Red Sea
@@ -46,7 +46,7 @@ chokepoints:
 
   cape_of_good_hope:
     name: Cape of Good Hope
-    portwatch_id: null
+    portwatch_id: chokepoint7 # Cape of Good Hope, confirmed 2026-09-16
     # Not a strait: a meridian gate south of Cape Point that rounding traffic crosses.
     gate: [[18.47, -34.36], [18.47, -37.50]]
     direction_positive: eastbound # Atlantic -> Indian Ocean
@@ -56,7 +56,7 @@ chokepoints:
 
   malacca:
     name: Strait of Malacca
-    portwatch_id: null
+    portwatch_id: chokepoint5 # Malacca Strait, confirmed 2026-09-16
     gate: [[101.25, 3.05], [100.55, 2.45]] # Malaysia coast -> Sumatra, near One Fathom Bank
     direction_positive: southeastbound # toward Singapore
     direction_negative: northwestbound # toward the Andaman Sea
@@ -65,7 +65,7 @@ chokepoints:
 
   bosporus:
     name: Bosporus Strait
-    portwatch_id: null
+    portwatch_id: chokepoint3 # Bosporus Strait, confirmed 2026-09-16
     gate: [[29.00, 41.10], [29.12, 41.10]]
     direction_positive: northbound # into the Black Sea
     direction_negative: southbound # into the Sea of Marmara
@@ -74,7 +74,7 @@ chokepoints:
 
   panama:
     name: Panama Canal
-    portwatch_id: null
+    portwatch_id: chokepoint2 # Panama Canal, confirmed 2026-09-16
     gate: [[-79.80, 9.15], [-79.68, 9.10]]
     direction_positive: northbound # toward Colon / Caribbean
     direction_negative: southbound # toward Balboa / Pacific

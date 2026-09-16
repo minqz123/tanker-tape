@@ -6,6 +6,8 @@ query is millions of rows and cannot finish inside any sane job timeout.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import httpx
 import pandas as pd
 import pytest
@@ -101,7 +103,16 @@ def test_pager_surfaces_service_errors(monkeypatch):
 
 
 def _fake_directory(monkeypatch, id_field="portid", name_field="portname", names=None):
-    """Stand in for the live layer: metadata plus one distinct query."""
+    """Stand in for the live layer: metadata plus one distinct query.
+
+    Also neutralises the committed ID cache. Once ``data/reference/portwatch_ports.csv``
+    exists in the repo, resolution reads it and never reaches these fakes — which is the
+    intended production behaviour, and exactly why a test of the live path has to opt out
+    of it explicitly.
+    """
+    monkeypatch.setattr(
+        portwatch, "cached_id_map_path", lambda entity: Path("/nonexistent/cache.csv")
+    )
     names = names or ["Ras Tanura", "Yanbu", "Rotterdam"]
     monkeypatch.setattr(
         portwatch,

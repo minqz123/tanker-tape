@@ -114,14 +114,22 @@ running for hours and dying on a timeout with nothing written.
 | PortWatch paging | 1000 records per response; page with `resultOffset`, order by `ObjectId` ascending | **Confirmed live 2026-09-16** — ~1.7s per page |
 | EIA | `https://api.eia.gov/v2/petroleum/pri/spt/data/` with `frequency=daily`, `data[0]=value`, `facets[series][]=RBRTE`, `length<=5000` | **Unconfirmed** — host blocked by egress policy |
 
-Deviations from the brief found so far:
+Findings from the live runs:
 
-- The brief says Hormuz is `chokepoint6`. This could not be verified, so the ID is a
-  **config value** in `config/zones.yaml` (`portwatch_id`), not a constant in code.
-  `tanker-tape verify-endpoints` resolves chokepoint names to IDs from the live table and
-  will tell you if it disagrees.
-- Port IDs in `config/ports.yaml` are likewise unverified placeholders. Ports whose ID does
-  not resolve are skipped with a loud warning rather than silently returning empty frames.
+- **Hormuz really is `chokepoint6`** — confirmed 2026-09-16 against the live directory,
+  now recorded in `data/reference/portwatch_chokepoints.csv` along with all 28 IDs. Every
+  configured chokepoint in `config/zones.yaml` carries its confirmed ID.
+- **PortWatch publishes no `n_transits` column.** Traffic arrives under another name, so
+  every consumer walks `features.TRAFFIC_MEASURE_CANDIDATES` rather than assuming one.
+- **The ports layer is too large to pull unfiltered** (>1.6M rows, ~3 hours). `ingest_ports`
+  resolves configured ports to IDs and filters server-side; `MAX_RECORDS` aborts anything
+  over-broad in minutes rather than hours.
+- **The distinct query intermittently 504s.** It makes the service scan millions of rows,
+  and identical requests succeeded and failed minutes apart. Requests retry with backoff on
+  5xx, and the ID directory is read from `data/reference/` when committed, keeping the least
+  reliable request in the project off the weekly path.
+- Port IDs in `config/ports.yaml` remain name-matched rather than pinned. Ports that do not
+  resolve are excluded with a loud warning, never zeroed.
 
 ## Commands
 
