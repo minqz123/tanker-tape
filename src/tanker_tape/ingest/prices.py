@@ -226,7 +226,13 @@ def add_return_features(
 
     Backward columns (``{prefix}_ret_{h}d``, ``{prefix}_rv_{w}d``) use only data up to and
     including the row's date, so they are safe as features. Forward columns
-    (``{prefix}_fwd_ret_{h}d``) are targets and are unsafe as features by construction.
+    (``{prefix}_fwd_ret_{h}d``, ``{prefix}_fwd_rv_{h}d``) are targets and are unsafe as
+    features by construction.
+
+    Volatility targets exist because they are the more plausible place for this project
+    to find anything. A closed strait is a dispersion event as much as a level event,
+    and volatility is more persistent than direction, so it survives a publication lag
+    that would destroy a directional signal.
 
     Args:
         frame: Frame sorted ascending by date.
@@ -249,6 +255,18 @@ def add_return_features(
     out[f"{prefix}_rv_{vol_window}d"] = daily.rolling(vol_window).std() * np.sqrt(
         TRADING_DAYS_PER_YEAR
     )
+
+    for horizon in horizons:
+        if horizon < 2:
+            # Realized volatility over a single day is just that day's absolute
+            # return; it carries no dispersion information worth forecasting.
+            continue
+        # std of the daily returns in (t, t+h]: roll over h days, then shift the
+        # window back so it lands on t.
+        out[f"{prefix}_fwd_rv_{horizon}d"] = daily.rolling(horizon).std().shift(-horizon) * np.sqrt(
+            TRADING_DAYS_PER_YEAR
+        )
+
     return out
 
 
@@ -285,6 +303,14 @@ def build_price_panel(
     panel = add_return_features(panel, "brent_spot", "brent")
     panel = add_return_features(panel, "wti_spot", "wti")
     panel["brent_wti_spread"] = panel["brent_spot"] - panel["wti_spot"]
+    # Backward change is a legal feature; the forward change is a target. The spread is
+    # where a Gulf-specific supply shock should show up most cleanly, because it is
+    # differenced against a US benchmark that the same shock does not touch.
+    panel["brent_wti_spread_chg_1d"] = panel["brent_wti_spread"].diff()
+    for horizon in (1, 5, 20):
+        panel[f"brent_wti_spread_fwd_chg_{horizon}d"] = (
+            panel["brent_wti_spread"].shift(-horizon) - panel["brent_wti_spread"]
+        )
 
     log_stage(
         logger,

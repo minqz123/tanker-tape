@@ -52,6 +52,10 @@ jobs:
         run: uv run tanker-tape ingest-portwatch --dataset ports
 
       - name: Record the live ID maps
+        # Best-effort: the distinct query behind this scans millions of rows and the
+        # service intermittently answers 504. Once the maps are committed the pull
+        # reads them from the repo, so a bad day here must not block the figures.
+        continue-on-error: true
         # Committed to the repo so the ID-to-name mapping is documented rather than
         # re-derived. This is what settles whether Hormuz is really "chokepoint6".
         run: |

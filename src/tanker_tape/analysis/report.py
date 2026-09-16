@@ -28,6 +28,30 @@ logger = get_logger(__name__)
 
 DEFAULT_HORIZONS = (1, 5, 20)
 
+# The three target families, and why each is here. Direction is the headline question
+# and the one most likely to come back null; volatility and the spread are where the
+# honest prior says a weekly-published physical signal could still carry information.
+TARGET_FAMILIES: tuple[tuple[str, str, str], ...] = (
+    (
+        "Direction",
+        "brent_fwd_ret_{horizon}d",
+        "Daily direction is priced fastest and is the least likely to survive a "
+        "weekly publication lag.",
+    ),
+    (
+        "Volatility",
+        "brent_fwd_rv_{horizon}d",
+        "A closure is a dispersion event as much as a level event, and volatility is "
+        "persistent enough to survive a lag that would destroy a directional signal.",
+    ),
+    (
+        "Brent-WTI spread",
+        "brent_wti_spread_fwd_chg_{horizon}d",
+        "A Gulf-specific supply shock should show up most cleanly differenced against "
+        "a US benchmark the same shock does not touch.",
+    ),
+)
+
 
 def _md_table(frame: pd.DataFrame, max_rows: int = 40, float_format: str = "{:.4f}") -> str:
     """Render a DataFrame as a GitHub-flavoured Markdown table.
@@ -76,6 +100,7 @@ def discover_columns(table: pd.DataFrame) -> dict[str, list[str]]:
         "brent_ret_20d",
         "brent_rv_20d",
         "brent_wti_spread",
+        "brent_wti_spread_chg_1d",
     ]
     price_features = [column for column in price_candidates if column in table.columns]
 
@@ -87,7 +112,7 @@ def discover_columns(table: pd.DataFrame) -> dict[str, list[str]]:
         if ("_z28d" in column or "_z90d" in column or "_yoy_dev" in column)
         and not column.endswith("_age_days")
     ]
-    targets = [column for column in table.columns if "_fwd_ret_" in column]
+    targets = [column for column in table.columns if "_fwd_" in column]
     # Strip the source prefixes so a chokepoint covered by both PortWatch and our own
     # collection is listed once, not as "hormuz" and "ais_hormuz".
     zones = sorted(
@@ -285,58 +310,74 @@ def _forecasting(
         return "_No AIS features found; there is nothing to test the incremental value of._"
 
     parts = [
-        "The question is narrow and the benchmark ladder is what answers it: does adding AIS "
-        "features beat price history alone, out of sample? Not does it beat nothing.",
+        "The question is narrow and the benchmark ladder is what answers it: does adding "
+        "AIS features beat price history alone, out of sample? Not does it beat nothing.",
         "",
         "Each model is walk-forward, expanding-window, refit out of sample, with an embargo "
-        "equal to the forecast horizon.",
+        "equal to the forecast horizon. Three target families are tested, because the "
+        "honest prior is that they behave differently.",
         "",
     ]
 
-    verdicts = []
-    for horizon in horizons:
-        target = f"brent_fwd_ret_{horizon}d"
-        if target not in table.columns:
-            parts.append(f"### Horizon {horizon}d\n\n_Target `{target}` not in the table._\n")
-            continue
-        try:
-            scoreboard, _ = compare_models(
-                table,
-                target,
-                price_features,
-                ais_features,
-                horizon=horizon,
-                min_train=min_train,
-            )
-        except ValueError as exc:
-            parts.append(f"### Horizon {horizon}d\n\n_Could not run: {exc}_\n")
-            continue
+    verdicts: list[str] = []
+    for family, template, rationale in TARGET_FAMILIES:
+        family_rows = []
+        parts.extend([f"### {family}", "", f"_{rationale}_", ""])
 
-        parts.extend([f"### Horizon {horizon}d", "", _md_table(scoreboard.reset_index()), ""])
-
-        if "dm_p_vs_price_only" in scoreboard.columns:
-            stat = scoreboard.loc["price_plus_ais", "dm_stat_vs_price_only"]
-            p_value = scoreboard.loc["price_plus_ais", "dm_p_vs_price_only"]
-            if np.isfinite(p_value) and p_value < 0.05 and stat < 0:
-                verdict = f"**{horizon}d: AIS improves on price-only** (DM p={p_value:.3f})."
-            elif np.isfinite(p_value) and p_value < 0.05 and stat > 0:
-                verdict = f"**{horizon}d: AIS makes it worse** (DM p={p_value:.3f})."
-            else:
-                verdict = (
-                    f"{horizon}d: no distinguishable difference from price-only "
-                    f"(DM p={p_value:.3f})."
+        for horizon in horizons:
+            target = template.format(horizon=horizon)
+            if target not in table.columns:
+                continue
+            try:
+                scoreboard, _ = compare_models(
+                    table,
+                    target,
+                    price_features,
+                    ais_features,
+                    horizon=horizon,
+                    min_train=min_train,
                 )
-            verdicts.append(verdict)
-            parts.extend([verdict, ""])
+            except ValueError as exc:
+                family_rows.append(f"- {horizon}d: could not run ({exc})")
+                continue
+
+            verdict = _verdict(scoreboard, horizon)
+            family_rows.append(f"- **{horizon}d** — {verdict}")
+            verdicts.append(f"{family} {horizon}d: {verdict}")
+            parts.extend([_md_table(scoreboard.reset_index()), ""])
+
+        if not family_rows:
+            parts.extend([f"_No `{template.format(horizon='h')}` target in the table._", ""])
+        else:
+            parts.extend(family_rows)
+            parts.append("")
 
     if verdicts:
-        parts.extend(["### Summary", "", *[f"- {verdict}" for verdict in verdicts], ""])
+        parts.extend(["### Summary", "", *[f"- {line}" for line in verdicts], ""])
     parts.append(
         "> A null result here is the expected outcome and a perfectly good finding. Markets "
         "price public information quickly, and PortWatch publishes weekly — the news moved "
         "days before the data did."
     )
     return "\n".join(parts)
+
+
+def _verdict(scoreboard: pd.DataFrame, horizon: int) -> str:
+    """One sentence on whether AIS improved on price history at this horizon."""
+    if "dm_p_vs_price_only" not in scoreboard.columns:
+        return "no Diebold-Mariano comparison available"
+
+    p_values = scoreboard["dm_p_vs_price_only"].dropna()
+    stats = scoreboard["dm_stat_vs_price_only"].dropna()
+    if p_values.empty or stats.empty:
+        return "no Diebold-Mariano comparison available"
+
+    p_value, stat = float(p_values.iloc[0]), float(stats.iloc[0])
+    if p_value < 0.05 and stat < 0:
+        return f"**AIS improves on price-only** (DM p={p_value:.3f})"
+    if p_value < 0.05 and stat > 0:
+        return f"**AIS makes it worse** (DM p={p_value:.3f})"
+    return f"no distinguishable difference from price-only (DM p={p_value:.3f})"
 
 
 def _limitations() -> str:

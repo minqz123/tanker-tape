@@ -15,7 +15,9 @@ fastest path to fixing it.
 from __future__ import annotations
 
 import datetime as dt
+import time
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -60,6 +62,58 @@ def _pick_column(frame: pd.DataFrame, candidates: tuple[str, ...], role: str) ->
         f"the layer returned {sorted(frame.columns)}. Update the candidate list in "
         "ingest/portwatch.py and note the deviation in CLAUDE.md."
     )
+
+
+def _get_with_retry(
+    client: httpx.Client,
+    url: str,
+    params: dict[str, Any],
+    attempts: int = 4,
+    base_delay: float = 3.0,
+) -> httpx.Response:
+    """GET with backoff on server-side failures.
+
+    The distinct query over the ports layer makes the service compute DISTINCT across
+    millions of rows, and it intermittently answers 504 rather than doing the work —
+    observed succeeding and failing on identical requests minutes apart. Retrying is
+    the right response to a 5xx; a 4xx is our fault and is raised immediately.
+
+    Raises:
+        httpx.HTTPStatusError: If every attempt fails.
+    """
+    last: httpx.Response | None = None
+    for attempt in range(attempts):
+        try:
+            response = client.get(url, params=params)
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            if attempt == attempts - 1:
+                raise
+            logger.warning(
+                "request to %s failed (%s); retrying in %.0fs", url, exc, base_delay * 2**attempt
+            )
+            time.sleep(base_delay * 2**attempt)
+            continue
+
+        if response.status_code < 500:
+            response.raise_for_status()
+            return response
+
+        last = response
+        if attempt < attempts - 1:
+            delay = base_delay * 2**attempt
+            logger.warning(
+                "%s returned %d; retrying in %.0fs (attempt %d/%d)",
+                url,
+                response.status_code,
+                delay,
+                attempt + 1,
+                attempts,
+            )
+            time.sleep(delay)
+
+    assert last is not None
+    last.raise_for_status()
+    return last
 
 
 def fetch_layer_metadata(layer_url: str, timeout: float = 60.0) -> dict[str, Any]:
@@ -299,7 +353,7 @@ def ingest_chokepoints(
 def fetch_distinct(
     layer_url: str,
     fields: str,
-    timeout: float = 120.0,
+    timeout: float = 180.0,
 ) -> pd.DataFrame:
     """Fetch the distinct combinations of a few fields.
 
@@ -326,8 +380,7 @@ def fetch_distinct(
         "f": "json",
     }
     with httpx.Client(timeout=timeout) as client:
-        response = client.get(f"{layer_url}/query", params=params)
-        response.raise_for_status()
+        response = _get_with_retry(client, f"{layer_url}/query", params)
         payload = response.json()
     if "error" in payload:
         raise RuntimeError(
@@ -337,6 +390,41 @@ def fetch_distinct(
 
     frame = pd.DataFrame([feature.get("attributes", {}) for feature in payload.get("features", [])])
     log_stage(logger, "portwatch.fetch_distinct", frame, fields=fields)
+    return frame
+
+
+def cached_id_map_path(entity: str) -> Path:
+    """Where the committed ID directory for an entity lives."""
+    from ..config import REPO_ROOT
+
+    return REPO_ROOT / "data" / "reference" / f"portwatch_{entity}s.csv"
+
+
+def load_cached_id_map(entity: str) -> pd.DataFrame | None:
+    """Read the committed ID directory, if it has been recorded.
+
+    Port and chokepoint identities are effectively static, while the distinct query
+    that derives them is the least reliable request this project makes — the service
+    has to scan millions of rows and intermittently answers 504 instead. Committing
+    the directory turns a flaky dependency into a file read, and keeps the weekly
+    pull working on a day the query happens to time out.
+
+    Returns:
+        The cached frame, or ``None`` when it has not been recorded yet.
+    """
+    path = cached_id_map_path(entity)
+    if not path.exists():
+        return None
+    frame = pd.read_csv(path)
+    expected = {f"{entity}_id", f"{entity}_name"}
+    if not expected <= set(frame.columns):
+        logger.warning(
+            "cached ID map %s is missing %s; ignoring it and querying the service",
+            path,
+            sorted(expected - set(frame.columns)),
+        )
+        return None
+    logger.info("stage=portwatch.cached_id_map entity=%s rows=%d path=%s", entity, len(frame), path)
     return frame
 
 
@@ -411,7 +499,9 @@ def resolve_port_ids(
     from ..config import load_ports
 
     configured = ports if ports is not None else load_ports()
-    directory = fetch_id_map(layer_url, "port")
+    directory = load_cached_id_map("port")
+    if directory is None:
+        directory = fetch_id_map(layer_url, "port")
 
     id_column, name_column = "port_id", "port_name"
     lowered = directory[name_column].astype(str).str.lower()

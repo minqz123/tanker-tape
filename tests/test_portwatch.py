@@ -6,6 +6,7 @@ query is millions of rows and cannot finish inside any sane job timeout.
 
 from __future__ import annotations
 
+import httpx
 import pandas as pd
 import pytest
 
@@ -13,10 +14,13 @@ from tanker_tape.ingest import portwatch
 
 
 class _FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, status_code=200):
         self._payload = payload
+        self.status_code = status_code
 
     def raise_for_status(self):
+        if self.status_code >= 400:
+            raise httpx.HTTPStatusError(f"status {self.status_code}", request=None, response=None)
         return None
 
     def json(self):
@@ -246,3 +250,98 @@ def test_normalise_names_the_real_columns_when_discovery_fails():
     frame = pd.DataFrame({"weird": [1], "other": [2]})
     with pytest.raises(KeyError, match="the layer returned"):
         portwatch.normalise_daily_table(frame, "port")
+
+
+def test_distinct_query_retries_a_gateway_timeout(monkeypatch):
+    """Observed live: the service 504s on the distinct query over millions of rows,
+    succeeding and failing on identical requests minutes apart."""
+    attempts = {"n": 0}
+
+    class Flaky:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url, params=None):
+            attempts["n"] += 1
+            if attempts["n"] < 3:
+                return _FakeResponse({}, status_code=504)
+            return _FakeResponse(
+                {"features": [{"attributes": {"portid": "p1", "portname": "Ras Tanura"}}]}
+            )
+
+    monkeypatch.setattr(portwatch.httpx, "Client", lambda **kw: Flaky())
+    monkeypatch.setattr(portwatch.time, "sleep", lambda seconds: None)
+
+    frame = portwatch.fetch_distinct("http://x/0", "portid,portname")
+
+    assert attempts["n"] == 3
+    assert len(frame) == 1
+
+
+def test_a_client_error_is_not_retried(monkeypatch):
+    attempts = {"n": 0}
+
+    class Broken:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url, params=None):
+            attempts["n"] += 1
+            return _FakeResponse({}, status_code=400)
+
+    monkeypatch.setattr(portwatch.httpx, "Client", lambda **kw: Broken())
+    monkeypatch.setattr(portwatch.time, "sleep", lambda seconds: None)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        portwatch.fetch_distinct("http://x/0", "portid,portname")
+
+    assert attempts["n"] == 1, "a 4xx is our fault; retrying it just wastes time"
+
+
+def test_committed_directory_is_used_instead_of_querying(monkeypatch, tmp_path):
+    """The whole point of committing the map: no live query on the weekly path."""
+    cached = tmp_path / "portwatch_ports.csv"
+    pd.DataFrame({"port_id": ["p1", "p2"], "port_name": ["Ras Tanura", "Yanbu"]}).to_csv(
+        cached, index=False
+    )
+
+    monkeypatch.setattr(portwatch, "cached_id_map_path", lambda entity: cached)
+    monkeypatch.setattr(
+        portwatch, "fetch_id_map", lambda *a, **k: pytest.fail("must not query the service")
+    )
+    monkeypatch.setattr(
+        portwatch,
+        "fetch_layer_metadata",
+        lambda *a, **k: {"fields": [{"name": "portid"}, {"name": "portname"}]},
+    )
+
+    resolved, _, id_column = portwatch.resolve_port_ids()
+
+    assert resolved["ras_tanura"] == ["p1"]
+    assert id_column == "portid"
+
+
+def test_a_malformed_cache_falls_back_to_the_service(monkeypatch, tmp_path):
+    cached = tmp_path / "portwatch_ports.csv"
+    pd.DataFrame({"something_else": ["x"]}).to_csv(cached, index=False)
+    monkeypatch.setattr(portwatch, "cached_id_map_path", lambda entity: cached)
+    _fake_directory(monkeypatch, names=["Ras Tanura"])
+
+    resolved, _, _ = portwatch.resolve_port_ids()
+
+    assert "ras_tanura" in resolved
+
+
+def test_no_cache_falls_back_to_the_service(monkeypatch, tmp_path):
+    monkeypatch.setattr(portwatch, "cached_id_map_path", lambda entity: tmp_path / "absent.csv")
+    _fake_directory(monkeypatch, names=["Ras Tanura"])
+
+    resolved, _, _ = portwatch.resolve_port_ids()
+
+    assert "ras_tanura" in resolved
