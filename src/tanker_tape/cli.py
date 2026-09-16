@@ -123,8 +123,9 @@ def resolve_ids(
         raise typer.BadParameter("entity must be 'chokepoint' or 'port'")
 
     layer = portwatch.CHOKEPOINTS_LAYER if entity == "chokepoint" else portwatch.PORTS_LAYER
-    frame = portwatch.normalise_daily_table(portwatch.fetch_layer(layer), entity)
-    lookup = portwatch.resolve_entity_ids(frame, entity)
+    # One distinct query, not a full pull: the ports layer is millions of daily rows
+    # and downloading all of them to learn ~2,000 names is indefensible.
+    lookup = portwatch.fetch_id_map(layer, entity)
 
     table = Table(title=f"PortWatch {entity} IDs")
     for column in lookup.columns:

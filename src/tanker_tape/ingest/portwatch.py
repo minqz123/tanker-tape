@@ -340,6 +340,55 @@ def fetch_distinct(
     return frame
 
 
+def fetch_id_map(layer_url: str, entity: str) -> pd.DataFrame:
+    """Fetch just the id/name directory for a layer.
+
+    Deliberately does **not** page the daily rows. The ports layer holds millions of
+    them, so building an ID map by downloading everything and taking distinct values
+    takes a quarter of an hour and then trips the record guard, to learn about two
+    thousand names.
+
+    Field names come from the layer metadata rather than being assumed, for the same
+    reason the rest of this module discovers its schema: a hardcoded ``portid`` breaks
+    silently against a service that calls it something else.
+
+    Args:
+        layer_url: Layer URL without the trailing ``/query``.
+        entity: ``"chokepoint"`` or ``"port"``; names the emitted columns.
+
+    Returns:
+        Columns ``{entity}_id`` and ``{entity}_name``, sorted by name.
+
+    Raises:
+        KeyError: If the layer publishes no recognisable id or name field.
+    """
+    metadata = fetch_layer_metadata(layer_url)
+    available = [field["name"] for field in metadata.get("fields", [])]
+
+    def pick(candidates: tuple[str, ...], role: str) -> str:
+        for candidate in candidates:
+            if candidate in available:
+                return candidate
+        raise KeyError(
+            f"no {role} field on {layer_url}. Tried {list(candidates)}; the layer "
+            f"publishes {sorted(available)}."
+        )
+
+    id_field = pick(_ID_COLUMN_CANDIDATES, f"{entity} id")
+    name_field = pick(_NAME_COLUMN_CANDIDATES, f"{entity} name")
+
+    directory = fetch_distinct(layer_url, f"{id_field},{name_field}")
+    if directory.empty:
+        raise RuntimeError(f"the {entity} directory came back empty from {layer_url}")
+
+    out = directory.rename(columns={id_field: f"{entity}_id", name_field: f"{entity}_name"}).loc[
+        :, [f"{entity}_id", f"{entity}_name"]
+    ]
+    out = out.drop_duplicates().sort_values(f"{entity}_name").reset_index(drop=True)
+    log_stage(logger, f"portwatch.fetch_id_map.{entity}", out)
+    return out
+
+
 def resolve_port_ids(
     layer_url: str = PORTS_LAYER,
     ports: dict[str, Any] | None = None,
@@ -362,19 +411,20 @@ def resolve_port_ids(
     from ..config import load_ports
 
     configured = ports if ports is not None else load_ports()
-    directory = fetch_distinct(layer_url, "portid,portname")
-    if directory.empty:
-        raise RuntimeError(f"the port directory came back empty from {layer_url}")
+    directory = fetch_id_map(layer_url, "port")
 
-    id_column = _pick_column(directory, _ID_COLUMN_CANDIDATES, "port id")
-    name_column = _pick_column(directory, _NAME_COLUMN_CANDIDATES, "port name")
+    id_column, name_column = "port_id", "port_name"
     lowered = directory[name_column].astype(str).str.lower()
 
     resolved: dict[str, list[str]] = {}
     unresolved: list[str] = []
     # Carry the live column name out with the results: the WHERE clause must use
     # whatever the service actually calls it, not an assumed "portid".
-    resolved_column = id_column
+    metadata = fetch_layer_metadata(layer_url)
+    available = [field["name"] for field in metadata.get("fields", [])]
+    resolved_column = next(
+        (candidate for candidate in _ID_COLUMN_CANDIDATES if candidate in available), "portid"
+    )
     for key, port in configured.items():
         if port.portwatch_id and (directory[id_column] == port.portwatch_id).any():
             resolved[key] = [port.portwatch_id]

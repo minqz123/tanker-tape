@@ -96,27 +96,72 @@ def test_pager_surfaces_service_errors(monkeypatch):
         list(portwatch.iter_features("http://x/0"))
 
 
-def test_resolve_port_ids_matches_by_name(monkeypatch):
-    directory = pd.DataFrame(
-        {
-            "portid": ["port1", "port2", "port3"],
-            "portname": ["Ras Tanura", "Yanbu", "Rotterdam"],
-        }
+def _fake_directory(monkeypatch, id_field="portid", name_field="portname", names=None):
+    """Stand in for the live layer: metadata plus one distinct query."""
+    names = names or ["Ras Tanura", "Yanbu", "Rotterdam"]
+    monkeypatch.setattr(
+        portwatch,
+        "fetch_layer_metadata",
+        lambda *a, **k: {"fields": [{"name": id_field}, {"name": name_field}]},
     )
-    monkeypatch.setattr(portwatch, "fetch_distinct", lambda *a, **k: directory)
+    directory = pd.DataFrame(
+        {id_field: [f"p{index}" for index in range(len(names))], name_field: names}
+    )
+    calls = []
+
+    def fake_distinct(layer_url, fields, **kwargs):
+        calls.append(fields)
+        return directory
+
+    monkeypatch.setattr(portwatch, "fetch_distinct", fake_distinct)
+    return calls
+
+
+def test_id_map_uses_one_distinct_query_not_a_full_pull(monkeypatch):
+    """Regression: building the map by paging every daily row took ~15 minutes and
+    then tripped the record guard, to learn about two thousand names."""
+    _fake_directory(monkeypatch)
+    monkeypatch.setattr(
+        portwatch, "iter_features", lambda *a, **k: pytest.fail("must not page the layer")
+    )
+
+    frame = portwatch.fetch_id_map(portwatch.PORTS_LAYER, "port")
+
+    assert list(frame.columns) == ["port_id", "port_name"]
+    assert len(frame) == 3
+
+
+def test_id_map_discovers_field_names_from_metadata(monkeypatch):
+    calls = _fake_directory(monkeypatch, id_field="PORTID", name_field="PORTNAME")
+
+    frame = portwatch.fetch_id_map(portwatch.PORTS_LAYER, "port")
+
+    assert calls == ["PORTID,PORTNAME"], "field names must come from the live metadata"
+    assert list(frame.columns) == ["port_id", "port_name"]
+
+
+def test_id_map_reports_an_unrecognisable_layer(monkeypatch):
+    monkeypatch.setattr(
+        portwatch, "fetch_layer_metadata", lambda *a, **k: {"fields": [{"name": "mystery"}]}
+    )
+    with pytest.raises(KeyError, match="publishes"):
+        portwatch.fetch_id_map(portwatch.PORTS_LAYER, "port")
+
+
+def test_resolve_port_ids_matches_by_name(monkeypatch):
+    _fake_directory(monkeypatch)
 
     resolved, unresolved, id_column = portwatch.resolve_port_ids()
 
-    assert resolved["ras_tanura"] == ["port1"]
-    assert resolved["yanbu"] == ["port2"]
+    assert resolved["ras_tanura"] == ["p0"]
+    assert resolved["yanbu"] == ["p1"]
     assert "basrah" in unresolved
     assert id_column == "portid"
 
 
 def test_resolve_port_ids_returns_the_live_id_column_name(monkeypatch):
     """Schema tolerance has to reach the WHERE clause, not stop at parsing."""
-    directory = pd.DataFrame({"PORTID": ["p1"], "PORTNAME": ["Ras Tanura"]})
-    monkeypatch.setattr(portwatch, "fetch_distinct", lambda *a, **k: directory)
+    _fake_directory(monkeypatch, id_field="PORTID", name_field="PORTNAME")
 
     _, _, id_column = portwatch.resolve_port_ids()
 
@@ -124,8 +169,7 @@ def test_resolve_port_ids_returns_the_live_id_column_name(monkeypatch):
 
 
 def test_ingest_ports_filters_server_side(monkeypatch):
-    directory = pd.DataFrame({"portid": ["port1", "port2"], "portname": ["Ras Tanura", "Yanbu"]})
-    monkeypatch.setattr(portwatch, "fetch_distinct", lambda *a, **k: directory)
+    _fake_directory(monkeypatch, names=["Ras Tanura", "Yanbu"])
 
     seen = {}
 
@@ -133,7 +177,7 @@ def test_ingest_ports_filters_server_side(monkeypatch):
         seen["where"] = where
         return pd.DataFrame(
             {
-                "portid": ["port1"],
+                "portid": ["p0"],
                 "portname": ["Ras Tanura"],
                 "date": [pd.Timestamp("2026-09-01", tz="UTC")],
                 "n_tanker": [12.0],
@@ -144,15 +188,14 @@ def test_ingest_ports_filters_server_side(monkeypatch):
 
     frame = portwatch.ingest_ports(store=False)
 
-    assert "port1" in seen["where"]
+    assert "p0" in seen["where"]
     assert seen["where"].startswith("portid IN ("), seen["where"]
     assert "1=1" not in seen["where"], "an unfiltered query is what broke the scheduled run"
-    assert frame["port_id"].iloc[0] == "port1"
+    assert frame["port_id"].iloc[0] == "p0"
 
 
 def test_ingest_ports_uses_the_discovered_id_column(monkeypatch):
-    directory = pd.DataFrame({"PORTID": ["p1"], "PORTNAME": ["Ras Tanura"]})
-    monkeypatch.setattr(portwatch, "fetch_distinct", lambda *a, **k: directory)
+    _fake_directory(monkeypatch, id_field="PORTID", name_field="PORTNAME", names=["Ras Tanura"])
 
     seen = {}
 
@@ -167,8 +210,7 @@ def test_ingest_ports_uses_the_discovered_id_column(monkeypatch):
 
 
 def test_ingest_ports_raises_when_nothing_resolves(monkeypatch):
-    directory = pd.DataFrame({"portid": ["p1"], "portname": ["Nowhere At All"]})
-    monkeypatch.setattr(portwatch, "fetch_distinct", lambda *a, **k: directory)
+    _fake_directory(monkeypatch, names=["Nowhere At All"])
 
     with pytest.raises(RuntimeError, match="none of the ports"):
         portwatch.ingest_ports(store=False)
