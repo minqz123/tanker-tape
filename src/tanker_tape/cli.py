@@ -337,6 +337,40 @@ def build_ais_metrics_command(
 
 
 @app.command()
+def charts(
+    output: str = typer.Option("docs/figures", help="Directory to write PNGs into."),
+) -> None:
+    """Render the report figures in both light and dark from the feature table.
+
+    Figures are generated from real pulled data only. Nothing here invents a series:
+    with no feature table, this command tells you to build one rather than drawing
+    something plausible.
+    """
+    from .analysis.charts import render_all
+    from .process.features import load_events
+    from .storage import read_processed
+
+    try:
+        table = read_processed("features_daily")
+    except FileNotFoundError:
+        console.print("[red]No feature table found. Run `tanker-tape build-features` first.[/red]")
+        raise typer.Exit(1) from None
+
+    try:
+        events = load_events()
+    except (FileNotFoundError, OSError):
+        events = None
+
+    written = render_all(table, events, output_dir=output)
+    summary = Table(title="Figures written")
+    summary.add_column("Figure")
+    summary.add_column("Files")
+    for name, paths in written.items():
+        summary.add_row(name, "\n".join(str(path) for path in paths))
+    console.print(summary)
+
+
+@app.command()
 def dashboard(port: int = typer.Option(8501, help="Port to serve on.")) -> None:
     """Launch the Streamlit dashboard."""
     import subprocess

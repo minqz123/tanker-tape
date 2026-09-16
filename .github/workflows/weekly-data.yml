@@ -8,6 +8,10 @@ on:
     - cron: "0 10 * * 3"
   workflow_dispatch:
 
+# Needed to commit the regenerated figures back to the repository.
+permissions:
+  contents: write
+
 jobs:
   pull:
     runs-on: ubuntu-latest
@@ -24,7 +28,8 @@ jobs:
         run: uv python install 3.11
 
       - name: Install project
-        run: uv sync --extra prices
+        # The research extra brings matplotlib, needed for the figures below.
+        run: uv sync --extra prices --extra research
 
       - name: Verify endpoints
         # Schema drift at the source is the most likely way this pipeline breaks
@@ -42,17 +47,15 @@ jobs:
         run: uv run tanker-tape ingest-portwatch --dataset chokepoints
 
       - name: Pull PortWatch ports
+        # Filtered server-side to the terminals in config/ports.yaml. An unfiltered
+        # pull of this layer is millions of rows and cannot finish inside the timeout.
         run: uv run tanker-tape ingest-portwatch --dataset ports
 
       - name: Summarise
         run: uv run tanker-tape status
 
-      # The data lake is gitignored on purpose, so the vintages are kept as run
-      # artifacts rather than committed. Artifacts expire; for a durable vintage
-      # history point TANKER_TAPE_DATA_DIR at object storage and sync it here
-      # instead. Losing a vintage is not like losing live AIS - PortWatch can be
-      # re-pulled - but the as-of history is what makes the backtest honest, so
-      # it is worth persisting properly before the research phase.
+      # Upload before the derived steps, so a failure in feature building or
+      # plotting never costs us the data that was successfully pulled.
       - name: Upload vintages
         uses: actions/upload-artifact@v4
         with:
@@ -60,3 +63,24 @@ jobs:
           path: data/
           retention-days: 90
           if-no-files-found: error
+
+      - name: Build feature table
+        run: uv run tanker-tape build-features
+
+      - name: Render figures
+        # These are committed below, so the README shows real pulled data. Nothing
+        # here is synthetic: with no feature table the command fails rather than
+        # drawing a plausible-looking series.
+        run: uv run tanker-tape charts --output docs/figures
+
+      - name: Commit refreshed figures
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/figures
+          if git diff --cached --quiet; then
+            echo "Figures unchanged; nothing to commit."
+          else
+            git commit -m "Refresh figures from the $(date -u +%Y-%m-%d) data pull"
+            git push
+          fi

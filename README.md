@@ -10,6 +10,20 @@ information about Brent returns and volatility.
 > investment advice. Correlation measured around a geopolitical shock is not a tradable
 > edge — see [Limitations](#limitations), which is the most important section of this file.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/brent-vs-transits-dark.png">
+  <img alt="Brent crude spot price above, Strait of Hormuz tanker transits below, sharing one timeline with dated crisis events marked" src="docs/figures/brent-vs-transits.png">
+</picture>
+
+*Regenerated automatically from each weekly data pull ([workflow](.github/workflows/weekly-data.yml)).
+Every series shown is pulled from EIA/FRED and IMF PortWatch — nothing here is simulated.
+The figure appears once the first scheduled pull has run.*
+
+Note the two panels rather than two y-axes. Overlaying price and transit counts on a
+shared plot with independent scales would manufacture an apparent amplitude relationship
+out of where the scales happened to be pinned; stacked panels keep the only honest
+comparison, which is timing.
+
 ---
 
 ## Why this question is interesting right now
@@ -62,6 +76,7 @@ uv run tanker-tape build-ais-metrics
 
 # 4. Build the modelling table, then look at it
 uv run tanker-tape build-features
+uv run tanker-tape charts          # figures -> docs/figures (light + dark)
 uv run tanker-tape report          # writes reports/research-report-<date>.md
 uv run tanker-tape dashboard
 ```
@@ -101,6 +116,7 @@ src/tanker_tape/
 │   ├── event_study.py   abnormal returns around dated events
 │   ├── causality.py     stationarity, VAR, Granger both ways, local projections
 │   ├── forecast.py      walk-forward, benchmarks, Diebold-Mariano
+│   ├── charts.py        figures for the report, README and dashboard
 │   └── report.py        generates the research report
 └── dashboard/app.py     Streamlit
 ```

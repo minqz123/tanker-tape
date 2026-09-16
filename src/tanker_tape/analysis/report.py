@@ -371,6 +371,7 @@ def generate_report(
     output_path: str | Path | None = None,
     horizons: tuple[int, ...] = DEFAULT_HORIZONS,
     min_train: int = 500,
+    with_figures: bool = True,
 ) -> Path:
     """Build the research report and write it to disk as Markdown.
 
@@ -381,6 +382,7 @@ def generate_report(
         output_path: Destination; defaults to ``reports/research-report-<date>.md``.
         horizons: Forecast horizons in trading days.
         min_train: Minimum training rows before walk-forward starts predicting.
+        with_figures: Render and embed the headline figure alongside the tables.
 
     Returns:
         The path written.
@@ -394,6 +396,22 @@ def generate_report(
     columns = discover_columns(table)
     generated_at = dt.datetime.now(dt.UTC)
 
+    figure_block = ""
+    if with_figures:
+        try:
+            from .charts import render_all
+
+            target = Path(output_path).parent if output_path else (REPO_ROOT / "reports")
+            written = render_all(
+                table, events, average_car=None, scoreboard=None, output_dir=target / "figures"
+            )
+            hero = written.get("brent-vs-transits")
+            if hero:
+                figure_block = f"![Brent crude and chokepoint traffic](figures/{hero[0].name})\n"
+        except Exception as exc:  # noqa: BLE001 - a missing figure must not lose the report
+            logger.warning("figures skipped: %s", exc)
+            figure_block = f"_Figures could not be rendered: {type(exc).__name__}: {exc}_\n"
+
     chunks = [
         "# Tanker Tape — research report",
         "",
@@ -401,6 +419,7 @@ def generate_report(
         "",
         f"> {DISCLAIMER}",
         "",
+        figure_block,
         _section("Data coverage", lambda: _coverage(table, columns)),
         _section("Events", lambda: _md_table(events, max_rows=30)),
         _section("Stationarity", lambda: _stationarity(table, columns)),
