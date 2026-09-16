@@ -51,6 +51,13 @@ jobs:
         # pull of this layer is millions of rows and cannot finish inside the timeout.
         run: uv run tanker-tape ingest-portwatch --dataset ports
 
+      - name: Record the live ID maps
+        # Committed to the repo so the ID-to-name mapping is documented rather than
+        # re-derived. This is what settles whether Hormuz is really "chokepoint6".
+        run: |
+          uv run tanker-tape resolve-ids chokepoint --save data/reference/portwatch_chokepoints.csv
+          uv run tanker-tape resolve-ids port --save data/reference/portwatch_ports.csv
+
       - name: Summarise
         run: uv run tanker-tape status
 
@@ -77,10 +84,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/figures
+          git add docs/figures data/reference
           if git diff --cached --quiet; then
-            echo "Figures unchanged; nothing to commit."
+            echo "Figures and ID maps unchanged; nothing to commit."
           else
-            git commit -m "Refresh figures from the $(date -u +%Y-%m-%d) data pull"
+            git commit -m "Refresh figures and ID maps from the $(date -u +%Y-%m-%d) data pull"
             git push
           fi

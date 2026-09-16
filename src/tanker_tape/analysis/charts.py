@@ -169,6 +169,64 @@ def _draw_events(
         labelled += 1
 
 
+def resolve_flow_column(features: pd.DataFrame) -> tuple[str | None, str]:
+    """Find the chokepoint traffic column, and a label that honestly names it.
+
+    PortWatch publishes no column called "transits"; which measure carries traffic is
+    discovered from the live table, so the earlier guess of ``*_n_transits`` matched
+    nothing and the panel rendered empty while the data sat in the frame under another
+    name. Resolution walks the same candidate list the feature builder uses, preferring
+    the chokepoint configured as Hormuz.
+
+    The label matters as much as the column. Titling a panel "Strait of Hormuz" while
+    plotting whichever column happened to match first would put a false claim on the
+    figure, so the label is derived from what was actually found.
+
+    Args:
+        features: The daily feature table.
+
+    Returns:
+        ``(column, label)``; ``column`` is ``None`` when nothing matches.
+    """
+    from ..config import load_zones
+    from ..process.features import TRAFFIC_MEASURE_CANDIDATES
+
+    def is_derived(name: str) -> bool:
+        return name.endswith("_age_days") or any(
+            marker in name for marker in ("_z28d", "_z90d", "_yoy_dev")
+        )
+
+    zones = load_zones()
+    # Preferred prefixes: the configured Hormuz ID first, then its key.
+    preferred: list[tuple[str, str]] = []
+    for key, zone in zones.items():
+        if key != "hormuz":
+            continue
+        if zone.portwatch_id:
+            preferred.append((zone.portwatch_id, zone.name))
+        preferred.append((key, zone.name))
+
+    for prefix, name in preferred:
+        for measure in TRAFFIC_MEASURE_CANDIDATES:
+            candidate = f"{prefix}_{measure}"
+            if candidate in features.columns and features[candidate].notna().any():
+                return candidate, f"{name} tanker traffic"
+
+    # Nothing configured matched; fall back to any non-derived traffic measure and
+    # name the panel after the column so the figure never overstates what it shows.
+    for measure in TRAFFIC_MEASURE_CANDIDATES:
+        for column in features.columns:
+            if (
+                column.endswith(f"_{measure}")
+                and not is_derived(column)
+                and not column.startswith("ais_")
+                and features[column].notna().any()
+            ):
+                return column, f"Chokepoint traffic ({column})"
+
+    return None, "Chokepoint traffic"
+
+
 def plot_price_and_flows(
     features: pd.DataFrame,
     events: pd.DataFrame | None = None,
@@ -205,15 +263,9 @@ def plot_price_and_flows(
     if price_column not in features.columns:
         raise KeyError(f"{price_column!r} not in the feature table: {sorted(features.columns)}")
 
+    flow_label = "Tanker transits"
     if flow_column is None:
-        flow_column = next(
-            (
-                column
-                for column in features.columns
-                if column.endswith("_n_transits") and not column.startswith("ais_")
-            ),
-            None,
-        )
+        flow_column, flow_label = resolve_flow_column(features)
 
     frame = features.copy()
     frame["date"] = pd.to_datetime(frame["date"])
@@ -237,7 +289,7 @@ def plot_price_and_flows(
     low, high = top.get_ylim()
     top.set_ylim(low, high + (high - low) * 0.30)
     top.set_title(
-        "Brent crude and Strait of Hormuz tanker traffic",
+        f"Brent crude and {flow_label}",
         color=theme.text_primary,
         fontsize=13,
         loc="left",
@@ -257,7 +309,7 @@ def plot_price_and_flows(
         bottom.plot(
             flows["date"], smoothed, color=theme.series_2, linewidth=1.8, solid_capstyle="round"
         )
-        label = f"Tanker transits (daily, {smooth_days}-day mean)"
+        label = f"{flow_label} (daily, {smooth_days}-day mean)"
     else:
         bottom.text(
             0.5,
@@ -269,7 +321,7 @@ def plot_price_and_flows(
             color=theme.text_secondary,
             fontsize=10,
         )
-        label = "Tanker transits"
+        label = flow_label
     _style_axes(bottom, theme, label)
 
     _draw_events(top, events, theme, label=True)

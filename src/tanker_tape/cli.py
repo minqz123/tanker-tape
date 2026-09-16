@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -108,7 +109,10 @@ def verify_endpoints(
 
 
 @app.command("resolve-ids")
-def resolve_ids(entity: str = typer.Argument("chokepoint", help="'chokepoint' or 'port'.")) -> None:
+def resolve_ids(
+    entity: str = typer.Argument("chokepoint", help="'chokepoint' or 'port'."),
+    save: str | None = typer.Option(None, help="Write the ID map to this CSV."),
+) -> None:
     """List the live PortWatch IDs and names, to confirm the values in ``config/``.
 
     The brief claims Hormuz is ``chokepoint6``; this is how you check rather than assume.
@@ -128,6 +132,16 @@ def resolve_ids(entity: str = typer.Argument("chokepoint", help="'chokepoint' or
     for row in lookup.itertuples(index=False):
         table.add_row(*(str(value) for value in row))
     console.print(table)
+
+    if save:
+        target = Path(save)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        lookup.to_csv(target, index=False)
+        console.print(f"[green]Wrote the live {entity} ID map[/green] to {target}")
+        console.print(
+            "[dim]Commit this: it is the answer to 'is Hormuz really chokepoint6?', and "
+            "having it in the repo means nobody has to re-derive it.[/dim]"
+        )
 
 
 @app.command("ingest-prices")
@@ -238,12 +252,10 @@ def build_features(
     prices = read_processed("prices_daily")
     chokepoints = read_vintage("portwatch_chokepoints", as_of=cutoff)
 
+    from .process.features import TRAFFIC_MEASURE_CANDIDATES
+
     count_column = next(
-        (
-            column
-            for column in ("n_transits", "n_tanker", "n_total")
-            if column in chokepoints.columns
-        ),
+        (column for column in TRAFFIC_MEASURE_CANDIDATES if column in chokepoints.columns),
         None,
     )
     if count_column is None:

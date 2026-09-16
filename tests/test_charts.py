@@ -186,3 +186,66 @@ def test_save_figure_creates_parent_directories(features, tmp_path):
     target = tmp_path / "nested" / "deeper" / "figure.png"
     save_figure(plot_price_and_flows(features), target)
     assert target.exists()
+
+
+def test_flow_column_resolves_the_real_portwatch_measure():
+    """Regression: PortWatch publishes no "n_transits" column.
+
+    The panel rendered empty on the first real data pull because the search looked
+    only for ``*_n_transits`` while the traffic sat under ``n_tanker``.
+    """
+    from tanker_tape.analysis.charts import resolve_flow_column
+
+    table = pd.DataFrame({"date": [1], "chokepoint6_n_tanker": [42.0]})
+
+    column, label = resolve_flow_column(table)
+
+    assert column == "chokepoint6_n_tanker"
+    assert "Hormuz" in label
+
+
+def test_flow_column_prefers_a_true_transit_count_when_present():
+    from tanker_tape.analysis.charts import resolve_flow_column
+
+    table = pd.DataFrame({"chokepoint6_n_tanker": [1.0], "chokepoint6_n_transits": [2.0]})
+    assert resolve_flow_column(table)[0] == "chokepoint6_n_transits"
+
+
+def test_flow_column_ignores_derived_and_self_collected_columns():
+    from tanker_tape.analysis.charts import resolve_flow_column
+
+    table = pd.DataFrame(
+        {
+            "chokepoint6_n_tanker_z28d": [1.0],
+            "chokepoint6_n_tanker_age_days": [2.0],
+            "ais_hormuz_n_transits": [3.0],
+            "chokepoint6_n_tanker": [4.0],
+        }
+    )
+    assert resolve_flow_column(table)[0] == "chokepoint6_n_tanker"
+
+
+def test_flow_column_label_does_not_claim_hormuz_for_another_chokepoint():
+    """A panel titled 'Strait of Hormuz' must not be showing Suez."""
+    from tanker_tape.analysis.charts import resolve_flow_column
+
+    table = pd.DataFrame({"chokepoint99_n_tanker": [7.0]})
+
+    column, label = resolve_flow_column(table)
+
+    assert column == "chokepoint99_n_tanker"
+    assert "Hormuz" not in label
+    assert "chokepoint99" in label
+
+
+def test_flow_column_ignores_an_all_nan_column():
+    from tanker_tape.analysis.charts import resolve_flow_column
+
+    table = pd.DataFrame({"chokepoint6_n_tanker": [np.nan, np.nan]})
+    assert resolve_flow_column(table)[0] is None
+
+
+def test_flow_column_returns_none_when_nothing_matches():
+    from tanker_tape.analysis.charts import resolve_flow_column
+
+    assert resolve_flow_column(pd.DataFrame({"brent_spot": [70.0]}))[0] is None

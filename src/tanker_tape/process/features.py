@@ -35,6 +35,12 @@ MIN_PUBLICATION_LAG_DAYS = 2
 
 DEFAULT_BASELINE_WINDOWS = (28, 90)
 
+# PortWatch does not publish a column literally called "transits". Which measure
+# carries chokepoint traffic is discovered from the live table, so every consumer
+# must search the same candidates in the same order or they will disagree about
+# which column the feature table actually holds.
+TRAFFIC_MEASURE_CANDIDATES = ("n_transits", "n_tanker", "n_total", "n_cargo")
+
 
 def rolling_zscore(
     series: pd.Series,
