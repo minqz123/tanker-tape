@@ -1,0 +1,1001 @@
+port_id,port_name
+port2187,Aamchit
+port0,Abbot Point
+port2,Aberdeen
+port10,Agadir
+port12,Aiyion
+port13,Ajman
+port14,Akita
+port15,Ako
+port16,Aktau Port
+port17,Akureyri
+port20,Al Basrah
+port22,Al Hamriyah LPG Terminal
+port1117,Al Ruwais
+port2254,Albany
+port2078,Alexandroupoli
+port2048,Almirante
+port2049,Ambarli
+port2208,Amlan
+port2162,Amurang
+fso52,Angola - Offshore Oil Terminal 1
+fso53,Angola - Offshore Oil Terminal 2
+fso54,Angola - Offshore Oil Terminal 3
+fso55,Angola - Offshore Oil Terminal 4
+fso56,Angola - Offshore Oil Terminal 5
+fso57,Angola - Offshore Oil Terminal 6
+fso58,Angola - Offshore Oil Terminal 7
+port2050,Angra Dos Reis
+port2229,Anping
+port2137,Antifer
+port19,Aqaba
+port2145,Atherinolakos
+fso59,Australia - Offshore Oil Terminal 1
+fso60,Australia - Offshore Oil Terminal 2
+fso61,Australia - Offshore Oil Terminal 3
+fso62,Australia - Offshore Oil Terminal 4
+fso63,Australia - Offshore Oil Terminal 5
+port2010,Azov
+port1048,Bahia Blanca
+port2195,Baie De Prony
+port100,Baku Port
+port2210,Balayan
+port101,Balboa
+port102,Balikpapan
+port103,Baltimore
+port104,Baltiysk
+port2120,Banana
+port107,Bandar Abbas
+port108,Bandar Khomeini
+port106,Bandar Shahid Rajaee
+port105,Bandar-E Pars Terminal
+port109,Bandirma
+port111,Bangkok
+fso64,Bangladesh - Offshore Oil Terminal 1
+port2228,Baniyas
+port112,Banjarmasin
+port113,Banjul
+port114,Banten
+port2023,Bantry Bay
+port116,Bar
+port2127,Barahona
+port117,Barbor's Point
+port118,Barcelona
+port119,Bari
+port120,Barranquilla
+port121,Barry
+port2225,Bashayer
+port122,Basseterre
+port123,Basuo
+port124,Bata
+port125,Batangas City
+port126,Baton Rouge
+port127,Batumi
+port128,Baubau
+port129,Bautino
+port130,Bay City
+port131,Bayonne
+port1026,Bayovar
+port133,Bayuquan
+port134,Beaumont
+port136,Beihai
+port137,Beira
+port132,Beirut
+port138,Bejaia
+port139,Belawan
+port141,Belfast
+port142,Belize City
+port143,Bellingham
+port140,Belém
+port110,Benghazi
+port144,Benicia
+port145,Benoa
+port146,Berbera
+port135,Berdyansk
+port147,Bergen
+port2136,Berre
+port1276,Betio (Tarawa)
+port2201,Bialla
+port148,Big Creek
+port2193,Bijela
+port1038,Bilbao
+port2077,Bilhorod-Dnistrovskyi
+port149,Bintulu
+port150,Bissau
+port151,Bitung
+port115,Bizerte
+port152,Blanglancang
+port153,Bluff Harbor
+port155,Bonny
+port156,Bontang LNG Terminal
+port158,Bordeaux
+port2043,Borusan
+port157,Bossaso
+port159,Boston
+port160,Boston
+port162,Botas
+port163,Botas Natural Gas Terminal
+port164,Brades
+port2009,Braila
+port165,Brake
+fso0,Brazil - Offshore Oil Terminal 1
+fso1,Brazil - Offshore Oil Terminal 10
+fso2,Brazil - Offshore Oil Terminal 11
+fso3,Brazil - Offshore Oil Terminal 12
+fso4,Brazil - Offshore Oil Terminal 13
+fso5,Brazil - Offshore Oil Terminal 14
+fso6,Brazil - Offshore Oil Terminal 15
+fso7,Brazil - Offshore Oil Terminal 16
+fso8,Brazil - Offshore Oil Terminal 17
+fso9,Brazil - Offshore Oil Terminal 18
+fso10,Brazil - Offshore Oil Terminal 19
+fso11,Brazil - Offshore Oil Terminal 2
+fso12,Brazil - Offshore Oil Terminal 20
+fso13,Brazil - Offshore Oil Terminal 21
+fso14,Brazil - Offshore Oil Terminal 22
+fso15,Brazil - Offshore Oil Terminal 23
+fso16,Brazil - Offshore Oil Terminal 24
+fso17,Brazil - Offshore Oil Terminal 25
+fso18,Brazil - Offshore Oil Terminal 26
+fso19,Brazil - Offshore Oil Terminal 27
+fso20,Brazil - Offshore Oil Terminal 28
+fso21,Brazil - Offshore Oil Terminal 29
+fso22,Brazil - Offshore Oil Terminal 3
+fso23,Brazil - Offshore Oil Terminal 30
+fso24,Brazil - Offshore Oil Terminal 31
+fso25,Brazil - Offshore Oil Terminal 32
+fso26,Brazil - Offshore Oil Terminal 33
+fso27,Brazil - Offshore Oil Terminal 34
+fso28,Brazil - Offshore Oil Terminal 35
+fso29,Brazil - Offshore Oil Terminal 36
+fso30,Brazil - Offshore Oil Terminal 37
+fso31,Brazil - Offshore Oil Terminal 38
+fso32,Brazil - Offshore Oil Terminal 39
+fso33,Brazil - Offshore Oil Terminal 4
+fso34,Brazil - Offshore Oil Terminal 40
+fso35,Brazil - Offshore Oil Terminal 41
+fso36,Brazil - Offshore Oil Terminal 42
+fso37,Brazil - Offshore Oil Terminal 43
+fso38,Brazil - Offshore Oil Terminal 44
+fso39,Brazil - Offshore Oil Terminal 45
+fso40,Brazil - Offshore Oil Terminal 5
+fso41,Brazil - Offshore Oil Terminal 6
+fso42,Brazil - Offshore Oil Terminal 7
+fso43,Brazil - Offshore Oil Terminal 8
+fso44,Brazil - Offshore Oil Terminal 9
+port167,Bremen
+port168,Bremerhaven
+port1084,Brest
+port169,Brevik
+port170,Bridgeport (US-CT)
+port171,Bridgetown
+port172,Brighton
+port173,Brindisi
+port174,Brisbane
+port175,Brofjorden
+port176,Broome
+port177,Brownsville (US-PA)
+port178,Bruges
+port179,Brunsbuettel
+port180,Brunswick
+port181,Buchanan
+port182,Buco
+port183,Buenaventura
+port184,Buenos Aires
+port185,Buffington
+port186,Buka
+port2160,Bula
+port189,Bullen Baai
+port190,Bunbury
+port193,Burgas
+port194,Burnie
+port195,Burns Harbour
+port2090,Burntisland
+port1065,Busan
+port196,Bushehr
+port197,Butinge Oil Terminal
+port198,Butuan City
+port200,Cabedelo
+port201,Cadiz
+port202,Cagayan de Oro
+port203,Cagliari
+port204,Cairns
+port205,Calabar
+port2209,Calaca
+port206,Calais
+port208,Caleta Patillos
+port1045,Callao
+port209,Calumet Harbor
+port2051,Cam Pha
+fso65,Cameroon - Offshore Oil Terminal 1
+port210,Campana
+port2246,Campbeltown
+fso66,Canada - Offshore Oil Terminal 1
+port2233,Canakkale
+port211,Canaport (St. John)
+port212,Canaveral Harbor
+port214,Cap Haitien
+port2052,Cape Flattery
+port215,Cape Town
+port216,Caracasbaai
+port1039,Carboneras
+port217,Cardiff
+port218,Cartagena
+port219,Cartagena
+port220,Casablanca
+port221,Castries
+port2085,Cat Lai (Saigon New Port)
+port222,Catania
+port2260,Catia La Mar
+port224,Cebu
+port226,Chabahar
+port225,Chaguaramas
+port2143,Chalkis
+port2104,Charlottetown
+port2186,Chekka
+port2086,Cherbourg
+port2053,Chicago
+port1040,Chimbote
+fso67,China - Offshore Oil Terminal 1
+fso68,China - Offshore Oil Terminal 2
+fso69,China - Offshore Oil Terminal 3
+fso70,China - Offshore Oil Terminal 4
+port1003,Chioggia
+port2179,Chofu
+port2042,Chu Lai
+port1035,Colon
+port2054,Coquimbo
+port2241,Cromarty
+fso71,Côte d'Ivoire - Offshore Oil Terminal 1
+port2029,Dachan Bay
+port2116,Dafeng
+port2237,Das Island
+port2095,Del Guazu
+port2247,Delaware
+fso72,Democratic Republic of the Congo - Offshore Oil Terminal 1
+fso73,Democratic Republic of the Congo - Offshore Oil Terminal 2
+fso74,Democratic Republic of the Congo - Offshore Oil Terminal 3
+fso75,Democratic Republic of the Congo - Offshore Oil Terminal 4
+port2188,Derna
+port1115,Detroit
+port2124,Dhekelia
+port2037,Diliskelesi
+port1342,Doha-Umm Said
+port2019,Dongguan
+port1309,Donghae
+port1070,Dongjiakou
+port2240,Douglas
+port1236,Duluth
+port2087,Dundee
+port213,Dung Quat
+port2256,Dutch Harbor
+port2016,Eilat
+port2044,El Dekheila
+fso45,Equatorial Guinea - Offshore Oil Terminal 1
+fso46,Equatorial Guinea - Offshore Oil Terminal 2
+fso47,Equatorial Guinea - Offshore Oil Terminal 3
+port2249,Erie
+port2076,Escravos (Oil Terminal)
+port2204,Eten
+port2168,Falconara
+port2244,Faslane
+port2234,Feodosiya
+port2239,Flotta
+port1001,Fortaleza (Mucuripe)
+port2259,Fray Bentos
+port2135,Fuglafjordur
+fso76,Gabon - Offshore Oil Terminal 1
+fso77,Gabon - Offshore Oil Terminal 2
+fso78,Gabon - Offshore Oil Terminal 3
+port2170,Gaeta
+port2007,Galati
+port2224,Galle
+port2138,Gamba
+port1041,Garrucha
+port2103,Gaspe
+fso79,Ghana - Offshore Oil Terminal 1
+fso80,Ghana - Offshore Oil Terminal 2
+fso81,Ghana - Offshore Oil Terminal 3
+port2005,Giurgiulesti Port
+port2079,Gizo
+port2098,Guamare
+port2114,Guangao
+port2107,Guayacan
+port2113,Gulei
+fso48,Guyana - Offshore Oil Terminal 1
+fso49,Guyana - Offshore Oil Terminal 2
+fso50,Guyana - Offshore Oil Terminal 3
+fso51,Guyana - Offshore Oil Terminal 4
+port2108,Hadera
+port1042,Haina
+port2026,Hamad Port
+port2198,Haugesund
+port2039,Hazira
+port2149,Helguvik
+port2173,Henza Island
+port2057,Hibikinada
+port2014,Holyhead
+port2105,Holyrood
+port2197,Honningsvag
+port2238,Hound Point
+port154,Huanghua
+port18,Hudaydah (Hodeidah)
+port2148,Hvalfjordur
+port1047,Ilo
+port2055,Iloilo
+fso82,India - Offshore Oil Terminal 1
+fso83,India - Offshore Oil Terminal 2
+fso84,India - Offshore Oil Terminal 3
+fso85,India - Offshore Oil Terminal 4
+fso86,Indonesia - Offshore Oil Terminal 1
+fso87,Indonesia - Offshore Oil Terminal 10
+fso88,Indonesia - Offshore Oil Terminal 11
+fso89,Indonesia - Offshore Oil Terminal 12
+fso90,Indonesia - Offshore Oil Terminal 13
+fso91,Indonesia - Offshore Oil Terminal 14
+fso92,Indonesia - Offshore Oil Terminal 15
+fso93,Indonesia - Offshore Oil Terminal 2
+fso94,Indonesia - Offshore Oil Terminal 3
+fso95,Indonesia - Offshore Oil Terminal 4
+fso96,Indonesia - Offshore Oil Terminal 5
+fso97,Indonesia - Offshore Oil Terminal 6
+fso98,Indonesia - Offshore Oil Terminal 7
+fso99,Indonesia - Offshore Oil Terminal 8
+fso100,Indonesia - Offshore Oil Terminal 9
+port2207,Isabel
+fso101,Israel - Offshore Oil Terminal 1
+port2099,Itacoatiara
+fso102,Italy - Offshore Oil Terminal 1
+fso103,Italy - Offshore Oil Terminal 2
+port2035,Itapoa
+port2001,Izmail
+fso104,Jamaica - Offshore Oil Terminal 1
+port2074,Jazan
+port2236,Jebel Dhanna
+port2021,Jiaxing
+port2185,Jinhae
+port2253,Kalama
+port2144,Kali Limenes
+port2176,Kanokawa
+port2153,Karimun
+port2056,Karumba
+port2151,Karwar
+port2038,Kattupalli
+port2250,Key West
+port2012,Khalifa Bin Salman
+port2025,Khalifa Port
+port2164,Kharg Island
+port2004,Kherson
+port2161,Kijing
+port2190,Kimanis
+port2031,King Abdullah Port
+port2180,Kinwan
+port2089,Kirkcaldy
+port2199,Kirkenes
+port2073,Kismayo
+port1378,Kitakyushu (Wakamatsu)
+port207,Kolkata (Syama Prasad Mookerje Port)
+port2159,Kuala Tanjung
+port2191,Kunak
+port2203,La Pampilla
+port2126,La Romana
+port2261,La Salina
+port1197,Laem Chabang
+port2226,Landskrona
+port2024,Larne
+port2058,Launceston
+port2165,Lavan
+port2142,Lavrion
+port2102,Lewisporte
+fso105,Libya - Offshore Oil Terminal 1
+port2100,Limboh
+port2243,Loch Striven
+port2115,Luanjiakou
+port2083,Lughughi
+port2118,Luoyuan
+port2117,Lushun
+port2163,Luwuk
+port2242,Macduff
+port2222,Mahon
+port1336,Makassar
+port1006,Malamocco
+fso106,Malaysia - Offshore Oil Terminal 1
+fso107,Malaysia - Offshore Oil Terminal 10
+fso108,Malaysia - Offshore Oil Terminal 11
+fso109,Malaysia - Offshore Oil Terminal 12
+fso110,Malaysia - Offshore Oil Terminal 13
+fso111,Malaysia - Offshore Oil Terminal 14
+fso112,Malaysia - Offshore Oil Terminal 15
+fso113,Malaysia - Offshore Oil Terminal 16
+fso114,Malaysia - Offshore Oil Terminal 17
+fso115,Malaysia - Offshore Oil Terminal 18
+fso116,Malaysia - Offshore Oil Terminal 2
+fso117,Malaysia - Offshore Oil Terminal 3
+fso118,Malaysia - Offshore Oil Terminal 4
+fso119,Malaysia - Offshore Oil Terminal 5
+fso120,Malaysia - Offshore Oil Terminal 6
+fso121,Malaysia - Offshore Oil Terminal 7
+fso122,Malaysia - Offshore Oil Terminal 8
+fso123,Malaysia - Offshore Oil Terminal 9
+port2255,Manchester
+port2213,Mangalia
+port2252,Marcus Hook
+port1393,Marsden Point
+fso124,Mauritania - Offshore Oil Terminal 1
+port2028,Mawan
+port2059,Melilla
+port2091,Methil
+fso125,Mexico - Offshore Oil Terminal 1
+port2060,Mina Salman
+port223,Moa
+port2017,Moji
+port2109,Mokha
+port2184,Mokpo
+port2205,Mollendo
+port2220,Mossel Bay
+port2061,Mourilyan
+fso126,Mozambique - Offshore Oil Terminal 1
+port2232,Mtwara
+port2154,Muntok
+port2178,Mutsure
+port2082,Nabouwalu
+port2040,Naha
+port2177,Nakagusukuwan
+port2174,Namikata
+port2062,Nanaimo
+port2020,Nanjing
+fso127,New Zealand - Offshore Oil Terminal 1
+port2063,Ngqura
+fso128,Nigeria - Offshore Oil Terminal 1
+fso129,Nigeria - Offshore Oil Terminal 10
+fso130,Nigeria - Offshore Oil Terminal 11
+fso131,Nigeria - Offshore Oil Terminal 12
+fso132,Nigeria - Offshore Oil Terminal 13
+fso133,Nigeria - Offshore Oil Terminal 14
+fso134,Nigeria - Offshore Oil Terminal 15
+fso135,Nigeria - Offshore Oil Terminal 16
+fso136,Nigeria - Offshore Oil Terminal 17
+fso137,Nigeria - Offshore Oil Terminal 18
+fso138,Nigeria - Offshore Oil Terminal 2
+fso139,Nigeria - Offshore Oil Terminal 3
+fso140,Nigeria - Offshore Oil Terminal 4
+fso141,Nigeria - Offshore Oil Terminal 5
+fso142,Nigeria - Offshore Oil Terminal 6
+fso143,Nigeria - Offshore Oil Terminal 7
+fso144,Nigeria - Offshore Oil Terminal 8
+fso145,Nigeria - Offshore Oil Terminal 9
+port2251,Nikiski
+port2064,Nordenham
+fso146,Norway - Offshore Oil Terminal 1
+fso147,Norway - Offshore Oil Terminal 2
+fso148,Norway - Offshore Oil Terminal 3
+fso149,Norway - Offshore Oil Terminal 4
+fso150,Norway - Offshore Oil Terminal 5
+port2258,Nueva Palmira
+port2183,Okpo (Geoje)
+port2065,Okrika
+port2003,Olvia
+port2041,Omaezaki
+fso151,Oman - Offshore Oil Terminal 1
+port1007,Oristano
+port2075,Orkney
+port2011,Otago
+port2182,Owase
+port2141,Pachi
+port2156,Padang
+port1008,Palermo
+port1431,Palma de Mallorca
+port1044,Pasajes
+port1010,Pecem
+port1062,Penang
+port2189,Pengerang
+port2216,Petropavlovsk-Kamchatskiy
+fso152,Philippines - Offshore Oil Terminal 1
+port1013,Piombino
+port2202,Pisco (General San Martin)
+port1419,Pivdennyi
+port2101,Point Tupper
+port2212,Ponce
+port2152,Port Blair
+port161,Port Botany
+port2172,Port Kaiser
+port192,Port Said
+port1164,Port of Sabah
+port1221,Port of Saint John's
+port2072,Port of Skadovsk
+port2066,Port of Virginia
+port2033,Port of Yeosu
+port1000,Porto De Maceio
+port1002,Porto De Suape
+port1005,Porto Di Lido-Venezia
+port1009,Porto Grande
+port2211,Porto Santo
+port1011,Porto Torres
+port2045,Porto de Itaguai
+port166,Porto do Acu
+port1012,Portocel
+port1014,Portsmouth Harbour
+port2032,Posorja
+port1016,Poti
+port1017,Pozzuoli
+port1018,Praia da Vitoria
+port1019,Presque Isle
+port1020,Primorsk
+port1021,Prince Rupert
+port1022,Probolinggo
+port1023,Progreso
+port1024,Providence
+port1025,Providenciales
+port2146,Psakhna
+port1159,Puerto Barrios
+port1027,Puerto Bolivar
+port1028,Puerto Bolivar
+port1029,Puerto Cabello
+port1030,Puerto Cabezas
+port1031,Puerto Caldera
+port1032,Puerto Caldera
+port1033,Puerto Castilla
+port1034,Puerto Chanaral
+port1036,Puerto Cortes
+port1037,Puerto Cristobal
+port1046,Puerto Del Rosario
+port1049,Puerto La Cruz
+port2013,Puerto Limon
+port1050,Puerto Madryn
+port1051,Puerto Miranda
+port1052,Puerto Moin
+port1053,Puerto Montt
+port1054,Puerto Nuevo
+port1055,Puerto Plata
+port1056,Puerto Princesa
+port1057,Puerto Quetzal
+port1058,Puerto San Antonio
+port2196,Puerto Sandino
+port2128,Puerto Viejo
+port1060,Puerto Yabucoa
+port2123,Pula
+port2110,Pulandian
+port1061,Pulau Baai
+port2158,Pulau Sambu
+port1432,Punta Arenas
+port1063,Punta Cardón
+port1064,Punta Lobitos
+port2094,Punta Loyola
+port2121,Punta Morales
+port2257,Punta Pereira
+port1066,Put Put
+port1067,Pyeongtaek
+port1068,Qalhat LNG Terminal
+port2030,Qianhai Bay
+port1069,Qingdao Port
+port1072,Qinhuangdao
+port1071,Qinzhou
+port1073,Qiwei
+port1074,Quanzhou
+port1075,Quebec
+port1077,Quequén
+port2111,Qushan Island
+port1078,Quy Nhon
+port1079,Raahe
+port1080,Rabaul
+port1081,Rabigh
+port1082,Rada De Arica
+port2047,Rades (La Goulette)
+port1085,Randers
+port1089,Ras Al Khafji
+port2217,Ras Al Khafji
+port1088,Ras Al Mishab
+port2130,Ras Gharib
+port2245,Ras Isa Terminal
+port1090,Ras Laffan
+port21,Ras Lanuf (Al Burayqah)
+port2132,Ras Shukheir
+port1091,Ras Tanura
+port1092,Rauma
+port1004,Ravenna
+port1093,Rayong
+port1094,Recife
+port2002,Reni
+port2084,Rennell Island
+fso153,Republic of Congo - Offshore Oil Terminal 1
+fso154,Republic of Congo - Offshore Oil Terminal 2
+fso155,Republic of Congo - Offshore Oil Terminal 3
+fso180,Republic of Congo - Offshore Oil Terminal 4
+port1096,Rethymnon
+port1098,Reykjavík
+port1099,Richards Bay
+port1100,Riga
+port1101,Rijeka
+port2080,Ringgi
+port1102,Rio Bueno
+port1103,Rio De Janeiro
+port1104,Rio Grande
+port1105,Rizhao
+port1106,Road Harbor
+port2248,Rodeo
+port2092,Romano
+port2008,Romportmet
+port2018,Ronne
+port2093,Rosales
+port1108,Rosario
+port1109,Rosarito
+port1110,Roseau
+port2022,Rosslare
+port1111,Rostock
+port1112,Rostov-Na-Donu
+port2088,Rosyth
+port1113,Rota
+port2221,Rota
+port1114,Rotterdam
+port1116,Rumoi
+port2134,Runavik
+fso156,Russian Federation - Offshore Oil Terminal 1
+fso157,Russian Federation - Offshore Oil Terminal 2
+port1107,Rørvik
+port2157,Sabang
+port2215,Sabetta
+port191,Safaga
+port1118,Safi
+port1119,Saganoseki
+port1120,Sagunto
+port1291,Saigon
+port2181,Saiki
+port1223,Saint George's
+port1219,Saint John
+port1220,Saint John's
+port1150,Saint Petersburg
+port1123,Saint-Laurent-du-Maroni
+port1124,Saint-Malo
+port1125,Saint-Marc
+port1126,Saipan
+port1127,Sakai
+port1128,Sakai-Semboku
+port1129,Sakaide
+port1130,Sakata
+port1131,Sal Rei
+port1132,Salaverry
+port1133,Saldanha Bay
+port1135,Salerno
+port2219,Salif
+port1136,Salina Cruz
+port1137,Samarinda
+port1138,Sampit
+port1139,Samsun
+port2223,San Ciprian
+port1140,San Diego
+port1141,San Francisco
+port1142,San Giorgio
+port1143,San Juan
+port1043,San Lorenzo (Henecan)
+port1059,San Martin
+port1144,San Miguel De Cozumel
+port1145,San Nicolas
+port2147,San Nicolas
+port1146,San Pedro
+port1147,San Pedro De Macoris
+port1148,Sandnessjøen
+port1149,Sandusky
+port1151,Sanshandaocun
+port1152,Santa Cruz De La Palma
+port1153,Santa Cruz De Tenerife
+port1154,Santa Marta
+port2167,Santa Panagia
+port1155,Santander
+port1156,Santiago De Cuba
+port1158,Santo Domingo
+port1160,Santos
+port1161,Sao Francisco
+port1163,Sao Tome
+port1165,Sapele
+port1166,Sarnia
+port1167,Sarroch Oil Terminal
+port2175,Sasebo
+port1168,Sassnitz
+port1169,Sauda
+fso158,Saudi Arabia - Offshore Oil Terminal 1
+port1170,Savannah
+port1171,Savona
+port2081,Savusavu
+port1173,Sayda
+port1174,Searsport
+port1175,Seattle
+port1176,Seghe
+port1177,Sekondi
+port1178,Sekupang
+port1179,Semarang
+port1180,Sendai-Shiogama
+fso159,Senegal - Offshore Oil Terminal 1
+fso160,Senegal - Offshore Oil Terminal 2
+port1181,Sept Iles
+port1182,Serangoon Harbor
+port1183,Sete
+port1184,Setubal
+port1185,Seville
+port1186,Shala Pristan
+port1188,Shanghai
+port2027,Shanghai (Yangshan)
+port1187,Shantou
+port1189,Shekou (Shenzhen)
+port1190,Shibushi
+port1191,Shidao Newport
+port1192,Shijing Longxiang
+port1193,Shimizu
+port1194,Shoreham Harbour
+port1195,Shougang Jingtang
+port2067,Shuaiba
+port1196,Shui Dong
+port2218,Shuqaiq
+port2036,Siam Seaport
+port1198,Sibolga
+port2129,Sidi Kerir
+port1199,Sikka
+port2133,Sillamae
+port1200,Sines
+port1201,Singapore
+fso161,Singapore - Offshore Oil Terminal 1
+port1202,Sint Nicolaas Baai
+port1203,Sitrah
+port1204,Skagen
+port1205,Skelleftehamn
+port1206,Skhira
+port1015,Skoldvik
+port1207,Skutskär
+port1208,Slagentangen
+port2214,Slavyanka
+port1211,Songkhla
+port1212,Souda (Chania)
+port1213,Sousse
+port1214,South Louisiana
+port2097,South Riding Point
+port1216,Southampton
+port1217,Soyo Angola LNG Terminal
+port1218,Split
+port1222,St Nazaire
+port2140,Stade
+port1224,Stagen
+port1225,Stavanger
+port1226,Steinkjer
+port1227,Stenungsund
+port2125,Stigsnaes
+port1228,Stockholm
+port1229,Stockton
+port1230,Stora Jatterson
+port2068,Stralsund
+port1231,Stura
+port1172,Suakin
+port2230,Suao
+port1232,Subic Bay
+port2069,Sullom Voe
+port1233,Sundaomen Wuz
+port1234,Sunderland
+port1235,Sundsvall
+port2155,Sungai Pakning
+port2206,Supe
+port2139,Supsa
+port1237,Surabaya
+port1238,Surigao City
+port1239,Susaki
+port1240,Suva
+port1253,Suzhou (Taicang)
+port1425,Suzhou (Zhangjiagang)
+port1241,Swanport
+port1242,Swinoujscie
+port1243,Sydney
+port1245,Sydney
+port1246,Szczecin
+port1162,São Sebastião
+port1209,Södertälje
+port1210,Sölvesborg
+port2200,Taboguilla
+port1247,Tachibana
+port1248,Tacoma
+port1249,Taganrog
+port1250,Tagonoura
+port1252,Taichung
+port1261,Taipei
+port1254,Takamatsu
+port1255,Takoradi
+port1256,Takuma
+port1257,Talara
+port2106,Talcahuano
+port1258,Tallinn
+port1259,Tampa Port
+port1260,Tampico
+port2194,Tan Tan
+port1262,Tanah Merah
+port1263,Tananger
+port2231,Tanga
+port1265,Tangier-Mediterranean
+port1266,Tangshan (Jingtang)
+port1267,Tanjung Benete
+port1268,Tanjung Geren
+port1269,Tanjung Pelepas
+port1272,Tanjung Redeb
+port1270,Tanjung Sangata
+port1271,Tanjung Sekong
+port1273,Tanjunguban
+port1275,Taranto
+port2166,Tarbert
+port1277,Tarragona
+port2227,Tartous
+port1278,Tauranga
+port2192,Tawau
+port1279,Teesport
+port1280,Tekirdag
+port1281,Teluk Bayur
+port1282,Tema
+port1283,Temryuk
+port1284,Terneuzen
+port1285,Texas City
+port1286,Tg Mani
+port1287,Tg. Sorong
+fso162,Thailand - Offshore Oil Terminal 1
+fso163,Thailand - Offshore Oil Terminal 2
+fso164,Thailand - Offshore Oil Terminal 3
+fso165,Thailand - Offshore Oil Terminal 4
+fso166,Thailand - Offshore Oil Terminal 5
+port1289,Thamesport
+port1290,Thamshamm
+port1288,Thathong
+port1293,Thessaloníki
+port1294,Thevenard
+port1295,Thunder Bay
+port1296,Thyboron
+port1297,Tianjin Xin Gang
+port1298,Tilbury
+port1299,Timaru
+fso167,Timor-Leste - Offshore Oil Terminal 1
+port1300,Tinian
+port1301,Toamasina
+port1302,Tocopilla
+port1303,Tokachi
+port1304,Tokuyama
+port1305,Tokyo
+port1306,Toledo
+port1308,Tomakomai
+port1310,Topolobampo
+port1311,Torneå
+port1312,Toronto
+port1313,Toros Gubre
+port2171,Torre Annunziata
+port1314,Torrevieja
+port1315,Townsville
+port1316,Trabzon
+port2015,Trapani
+port1317,Trelleborg
+port1318,Trieste
+port1319,Trincomalee
+port1274,Tripoli
+port1320,Trois Rivieres
+port1321,Tromsø
+port1322,Trondheim
+port1323,Tsingéli
+port1324,Tsukumi
+port1325,Tsuruga
+port1326,Tuapse
+port1327,Tuban
+port1328,Tubarao
+port2006,Tulcea
+port1307,Tulear (Toliara)
+port2119,Tumaco
+port1329,Tunis
+fso168,Tunisia - Offshore Oil Terminal 1
+port1330,Turkmenbashi Port
+port1331,Tuticorin
+port1332,Tuxpan
+port1333,Two Harbors
+port1334,Tynemouth
+port1335,Ube
+port1337,Uleelheue
+port1338,Ulsan
+port1339,Umea Hamn
+port1341,Umm Qasr
+port1340,Umm al Qaiwain
+fso169,United Kingdom - Offshore Oil Terminal 1
+fso170,United Kingdom - Offshore Oil Terminal 2
+fso171,United Kingdom - Offshore Oil Terminal 3
+fso172,United Kingdom - Offshore Oil Terminal 4
+fso173,United Kingdom - Offshore Oil Terminal 5
+fso174,United Kingdom - Offshore Oil Terminal 6
+fso175,United States - Offshore Oil Terminal 1
+port1343,Uno
+port2071,Ust-Danube
+port1095,Ust-Luga
+port1344,Uturoa
+port1345,Uwajima
+port1346,Vaasa
+port1083,Vado Ligure
+port1348,Valencia
+port1349,Valletta
+port1350,Vancouver
+port1351,Vancouver
+port1352,Vanimo
+port187,Vanino
+port1353,Varberg
+port1354,Varkaus
+port1355,Varna
+port2169,Vasto
+fso176,Venezuela - Offshore Oil Terminal 1
+port1357,Ventspils
+port1358,Veracruz
+port1360,Victoria
+port1361,Victoria
+fso177,Vietnam - Offshore Oil Terminal 1
+fso178,Vietnam - Offshore Oil Terminal 2
+fso179,Vietnam - Offshore Oil Terminal 3
+port1362,Vieux Fort
+port1363,Vigo
+port1364,Vikanes
+port2046,Vila Do Conde
+port1365,Villagarcia De Arosa
+port1366,Villanueva
+port1367,Visakhapatnam
+port1368,Vitoria
+port2150,Vizhinjam
+port1369,Vladivostok
+port1370,Vlissingen
+port1371,Vlora
+port1372,Voh
+port1373,Volos
+port1374,Vostochnyy
+port1375,Vung Tau
+port1376,Vyborg
+port1356,Västerås
+port1377,Waingapu
+port1379,Wakayama-Shimotsu
+port1380,Wallaroo
+port2070,Wallhamn
+port1381,Walvis Bay
+port1382,Warren Point
+port1383,Warri
+port1384,Waterford
+port1385,Weifang Port
+port1386,Weihai
+port1387,Weipa
+port1388,Wellington
+port1390,Wenzhou
+port1391,Western Port
+port1392,Wewak Harbor
+port1395,Whyalla
+port1396,Wilhelmshaven
+port1397,Willemstad
+port1398,"Wilmington, DE"
+port1399,"Wilmington, NC"
+port1400,Wisbech
+port1401,Wismar
+port1402,Workington
+port2096,Wyndham
+port1403,Xiagong
+port1404,Xiamen
+port1405,Xiuyu
+port1406,Yakacik
+port1407,Yalova
+port1408,Yanbu (Yanbu city)
+port1086,Yangon
+port1409,Yangpu
+port1410,Yantai
+port1414,Yantian
+port2034,Yarimca
+port1411,Yatsushiro
+port1412,Yawatahama
+port1413,Yeysk
+port1415,Yingkou
+port1416,Yokkaichi
+port1417,Yokohama
+port1418,Yokosuka
+port2122,Zadar
+port1420,Zamboanga
+port1421,Zanzibar
+port1422,Zarate
+port1423,Zarzis
+port1424,Zeebrugge
+port2131,Zeit Bay
+port1426,Zhanjiang
+port1427,Zhapu
+port1428,Zhouliwang
+port1429,Zhoushan
+port2112,Zhuhai
+port2235,Zirku Island
+port1430,Zonguldak
+port1,Åbenrå
+port11,Åhus
