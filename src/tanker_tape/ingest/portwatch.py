@@ -32,8 +32,14 @@ ARCGIS_ROOT = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/service
 CHOKEPOINTS_LAYER = f"{ARCGIS_ROOT}/Daily_Chokepoints_Data/FeatureServer/0"
 PORTS_LAYER = f"{ARCGIS_ROOT}/Daily_Ports_Data/FeatureServer/0"
 
-# ArcGIS caps a single response; PortWatch's documented cap is 1000 records.
+# ArcGIS caps a single response; PortWatch's observed cap is 1000 records. The real
+# cap is read from the layer metadata where it is published.
 PAGE_SIZE = 1000
+
+# Guard rail against an accidental full-layer pull. The daily ports layer held more
+# than 1.6 million rows when this was measured on 2026-09-16 and was still paging, so
+# an unfiltered pull is never the right thing to do.
+MAX_RECORDS = 500_000
 
 _DATE_COLUMN_CANDIDATES = ("date", "Date", "DATE", "date_", "day_date")
 _ID_COLUMN_CANDIDATES = ("portid", "PORTID", "chokepoint_id", "chokepointid", "objectid_ref")
@@ -80,11 +86,17 @@ def iter_features(
     page_size: int = PAGE_SIZE,
     order_by: str = "ObjectId ASC",
     timeout: float = 120.0,
+    max_records: int | None = MAX_RECORDS,
 ) -> Iterator[dict[str, Any]]:
     """Page through a FeatureServer layer, yielding attribute dicts.
 
     Paging uses a stable ``ObjectId`` sort so that pages do not overlap or skip rows
     if the service reorders results between requests.
+
+    ``max_records`` is a guard rail, not a limit to tune. The ports layer holds several
+    million rows, and an unfiltered pull of it runs for hours before anything notices —
+    a scheduled job just dies on its timeout with nothing written. Hitting this cap
+    means the query was too broad; narrow the ``where`` clause rather than raising it.
 
     Args:
         layer_url: Layer URL without the trailing ``/query``.
@@ -93,12 +105,13 @@ def iter_features(
         page_size: Records per request.
         order_by: ArcGIS ``orderByFields`` value.
         timeout: Per-request timeout in seconds.
+        max_records: Abort after this many rows; ``None`` disables the guard.
 
     Yields:
         One dict of attributes per feature.
 
     Raises:
-        RuntimeError: If the service returns an error payload.
+        RuntimeError: If the service errors, or the result exceeds ``max_records``.
     """
     offset = 0
     with httpx.Client(timeout=timeout) as client:
@@ -122,6 +135,15 @@ def iter_features(
             for feature in features:
                 yield feature.get("attributes", {})
 
+            offset_after = offset + len(features)
+            if max_records is not None and offset_after >= max_records:
+                raise RuntimeError(
+                    f"query returned more than {max_records:,} rows from {layer_url} and was "
+                    f"stopped (where={where!r}). The full ports layer is several million rows; "
+                    "filter it server-side - ingest_ports() does this by resolving the ports in "
+                    "config/ports.yaml to IDs first."
+                )
+
             logger.debug("portwatch page offset=%d returned=%d", offset, len(features))
             # `exceededTransferLimit` is the authoritative "there is more" signal; the
             # short-page check covers services that omit it.
@@ -134,6 +156,7 @@ def fetch_layer(
     layer_url: str,
     where: str = "1=1",
     page_size: int = PAGE_SIZE,
+    max_records: int | None = MAX_RECORDS,
 ) -> pd.DataFrame:
     """Fetch an entire layer into a DataFrame, converting ArcGIS date fields.
 
@@ -155,7 +178,15 @@ def fetch_layer(
         metadata.get("maxRecordCount"),
     )
 
-    frame = pd.DataFrame(list(iter_features(layer_url, where=where, page_size=page_size)))
+    # The service publishes its own page cap; using it cuts the number of round trips.
+    published_cap = metadata.get("maxRecordCount")
+    if isinstance(published_cap, int) and published_cap > page_size:
+        logger.info("using the layer's published maxRecordCount=%d for paging", published_cap)
+        page_size = published_cap
+
+    frame = pd.DataFrame(
+        list(iter_features(layer_url, where=where, page_size=page_size, max_records=max_records))
+    )
     if frame.empty:
         logger.warning("layer %s returned no rows for where=%r", layer_url, where)
         return frame
@@ -265,18 +296,160 @@ def ingest_chokepoints(
     return frame
 
 
+def fetch_distinct(
+    layer_url: str,
+    fields: str,
+    timeout: float = 120.0,
+) -> pd.DataFrame:
+    """Fetch the distinct combinations of a few fields.
+
+    Used to pull the ~2,000-row port directory without touching the millions of daily
+    rows behind it.
+
+    Args:
+        layer_url: Layer URL without the trailing ``/query``.
+        fields: Comma-separated field names.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        One row per distinct combination.
+
+    Raises:
+        RuntimeError: If the service rejects the distinct query.
+    """
+    params = {
+        "where": "1=1",
+        "outFields": fields,
+        "returnGeometry": "false",
+        "returnDistinctValues": "true",
+        "resultRecordCount": 10000,
+        "f": "json",
+    }
+    with httpx.Client(timeout=timeout) as client:
+        response = client.get(f"{layer_url}/query", params=params)
+        response.raise_for_status()
+        payload = response.json()
+    if "error" in payload:
+        raise RuntimeError(
+            f"distinct query failed on {layer_url}: {payload['error']}. Pin explicit "
+            "portwatch_id values in config/ports.yaml so resolution does not need it."
+        )
+
+    frame = pd.DataFrame([feature.get("attributes", {}) for feature in payload.get("features", [])])
+    log_stage(logger, "portwatch.fetch_distinct", frame, fields=fields)
+    return frame
+
+
+def resolve_port_ids(
+    layer_url: str = PORTS_LAYER,
+    ports: dict[str, Any] | None = None,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Resolve the ports in ``config/ports.yaml`` to live PortWatch IDs.
+
+    This is what makes the daily pull tractable: with IDs in hand the query filters
+    server-side to the handful of terminals actually being tracked, instead of
+    downloading every port on earth and discarding 99% of it.
+
+    Args:
+        layer_url: Ports layer URL.
+        ports: Port config; loaded from ``config/ports.yaml`` when omitted.
+
+    Returns:
+        ``(resolved, unresolved)`` mapping each config key to its matching IDs, and
+        listing the keys that matched nothing.
+    """
+    from ..config import load_ports
+
+    configured = ports if ports is not None else load_ports()
+    directory = fetch_distinct(layer_url, "portid,portname")
+    if directory.empty:
+        raise RuntimeError(f"the port directory came back empty from {layer_url}")
+
+    id_column = _pick_column(directory, _ID_COLUMN_CANDIDATES, "port id")
+    name_column = _pick_column(directory, _NAME_COLUMN_CANDIDATES, "port name")
+    lowered = directory[name_column].astype(str).str.lower()
+
+    resolved: dict[str, list[str]] = {}
+    unresolved: list[str] = []
+    for key, port in configured.items():
+        if port.portwatch_id and (directory[id_column] == port.portwatch_id).any():
+            resolved[key] = [port.portwatch_id]
+            continue
+        matches = directory.loc[
+            lowered.str.contains(port.match_name.lower(), regex=False, na=False), id_column
+        ]
+        if matches.empty:
+            unresolved.append(key)
+            continue
+        resolved[key] = [str(value) for value in matches]
+
+    logger.info(
+        "stage=portwatch.resolve_port_ids resolved=%d unresolved=%d directory_size=%d",
+        len(resolved),
+        len(unresolved),
+        len(directory),
+    )
+    if unresolved:
+        logger.warning(
+            "could not resolve %d configured port(s): %s. They are EXCLUDED from the pull, "
+            "not silently zeroed.",
+            len(unresolved),
+            ", ".join(unresolved),
+        )
+    return resolved, unresolved
+
+
 def ingest_ports(
-    where: str = "1=1",
+    where: str | None = None,
     layer_url: str = PORTS_LAYER,
     retrieved_at: dt.datetime | None = None,
     store: bool = True,
+    all_ports: bool = False,
 ) -> pd.DataFrame:
     """Pull the daily port activity table and store it as a vintage.
 
+    By default this pulls **only the ports configured in ``config/ports.yaml``**, by
+    resolving them to IDs and filtering server-side. That is not an optimisation: the
+    full layer was over 1.6 million rows and still paging after 30 minutes when it was
+    measured, so an unfiltered pull cannot finish inside any reasonable job timeout.
+
+    Args:
+        where: Explicit filter, bypassing port resolution entirely.
+        layer_url: Override the layer URL.
+        retrieved_at: Pull timestamp; defaults to now.
+        store: Whether to persist the vintage.
+        all_ports: Pull every port. Expect hours, and raise ``max_records`` first.
+
     Returns:
         The normalised frame.
+
+    Raises:
+        RuntimeError: If no configured port could be resolved.
     """
     from ..storage import write_vintage
+
+    if where is None and not all_ports:
+        resolved, unresolved = resolve_port_ids(layer_url)
+        if not resolved:
+            raise RuntimeError(
+                "none of the ports in config/ports.yaml matched the live PortWatch "
+                f"directory (tried {len(unresolved)}). Run `tanker-tape resolve-ids port` "
+                "to see the real names, then fix match_name or pin portwatch_id."
+            )
+        identifiers = sorted({value for values in resolved.values() for value in values})
+        quoted = ", ".join(f"'{value}'" for value in identifiers)
+        where = f"portid IN ({quoted})"
+        logger.info(
+            "stage=portwatch.ingest_ports filtering to %d port id(s) from %d configured entries",
+            len(identifiers),
+            len(resolved),
+        )
+    elif all_ports:
+        where = where or "1=1"
+        logger.warning(
+            "pulling EVERY port. This layer had >1.6M rows when last measured and will "
+            "likely exceed max_records or the job timeout."
+        )
 
     frame = normalise_daily_table(fetch_layer(layer_url, where=where), "port")
     if store and not frame.empty:

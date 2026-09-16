@@ -94,19 +94,24 @@ positions shared across many MMSIs (spoofing clusters), AIS gaps > 12h inside a 
 
 ## Endpoint verification log
 
-Checked 2026-09-15. **Two of these could not be reached from the build container** — the
-egress proxy denied `portwatch.imf.org`, `www.eia.gov`, `aisstream.io`, and
-`services9.arcgis.com`. Values below marked *unconfirmed* came from documentation and
-third-party mirrors, not a live response. Run `tanker-tape verify-endpoints` from a machine
-with open network access before trusting them, and update this log with what it prints.
+**Updated 2026-09-16 from a live GitHub Actions run** (the build container's egress proxy
+blocks these hosts, but CI can reach them). The first scheduled weekly pull confirmed the
+PortWatch endpoints work as written: the chokepoints layer pulled cleanly in 13 seconds.
+
+It also exposed a real problem. The **ports layer is enormous** — the pull was past
+1,636,000 rows and still paging when the 30-minute job timeout killed it, implying roughly
+three hours for a full unfiltered fetch. `ingest_ports()` now resolves the ports in
+`config/ports.yaml` to IDs first and filters server-side, and `iter_features` carries a
+`MAX_RECORDS` guard so an over-broad query fails in minutes with a clear message instead of
+running for hours and dying on a timeout with nothing written.
 
 | Source | Value used | Status |
 |---|---|---|
 | aisstream | `wss://stream.aisstream.io/v0/stream`; subscription `{APIKey, BoundingBoxes, FiltersShipMMSI?, FilterMessageTypes?}` within 3s; bounding boxes are `[[lat,lon],[lat,lon]]` | Confirmed against the published AsyncAPI spec |
 | aisstream | Envelope `{MessageType, MetaData, Message:{<Type>:{...}}}`; `PositionReport.{UserID,Latitude,Longitude,Sog,Cog,NavigationalStatus,TrueHeading}`; `ShipStaticData.{UserID,ImoNumber,Name,Type,MaximumStaticDraught,Dimension,Destination}` | Confirmed against the AsyncAPI spec |
-| PortWatch chokepoints | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Daily_Chokepoints_Data/FeatureServer/0/query` (dataset `42132aa4e2fc4d41bdaf9a445f688931_0`) | **Unconfirmed** — host blocked by egress policy |
-| PortWatch ports | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Daily_Ports_Data/FeatureServer/0/query` (dataset `959214444157458aad969389b3ebe1a0_0`) | **Unconfirmed** — host blocked by egress policy |
-| PortWatch paging | 1000 records per response; page with `resultOffset`, order by `ObjectId` ascending | **Unconfirmed** — documented limit, not observed |
+| PortWatch chokepoints | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Daily_Chokepoints_Data/FeatureServer/0/query` | **Confirmed live 2026-09-16** — full pull in 13s |
+| PortWatch ports | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Daily_Ports_Data/FeatureServer/0/query` | **Confirmed live 2026-09-16** — but >1.6M rows; must be filtered server-side |
+| PortWatch paging | 1000 records per response; page with `resultOffset`, order by `ObjectId` ascending | **Confirmed live 2026-09-16** — ~1.7s per page |
 | EIA | `https://api.eia.gov/v2/petroleum/pri/spt/data/` with `frequency=daily`, `data[0]=value`, `facets[series][]=RBRTE`, `length<=5000` | **Unconfirmed** — host blocked by egress policy |
 
 Deviations from the brief found so far:
