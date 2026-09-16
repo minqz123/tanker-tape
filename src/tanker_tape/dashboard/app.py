@@ -68,11 +68,28 @@ def render_chokepoint_cards(features: pd.DataFrame) -> None:
     columns = st.columns(min(len(zones), 4) or 1)
     for index, (key, zone) in enumerate(zones.items()):
         target = columns[index % len(columns)]
+        # Exclude the derived columns explicitly. A substring test alone can pick
+        # "<zone>_n_transits_age_days" as the headline figure and show a staleness
+        # count where the transit count belongs.
         count_column = next(
-            (c for c in features.columns if c.startswith(f"{key}_") and "_z" not in c), None
+            (
+                column
+                for column in features.columns
+                if column.startswith(f"{key}_")
+                and not column.endswith("_age_days")
+                and "_z28d" not in column
+                and "_z90d" not in column
+                and "_yoy_dev" not in column
+            ),
+            None,
         )
         z_column = next(
-            (c for c in features.columns if c.startswith(f"{key}_") and c.endswith("_z28d")), None
+            (
+                column
+                for column in features.columns
+                if column.startswith(f"{key}_") and column.endswith("_z28d")
+            ),
+            None,
         )
         value = latest.get(count_column) if count_column else None
         z_score = latest.get(z_column) if z_column else None

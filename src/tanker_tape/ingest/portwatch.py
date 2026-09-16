@@ -355,8 +355,9 @@ def resolve_port_ids(
         ports: Port config; loaded from ``config/ports.yaml`` when omitted.
 
     Returns:
-        ``(resolved, unresolved)`` mapping each config key to its matching IDs, and
-        listing the keys that matched nothing.
+        ``(resolved, unresolved, id_column)`` — the matching IDs per config key, the
+        keys that matched nothing, and the live name of the ID column so callers can
+        build a filter against the schema the service actually returned.
     """
     from ..config import load_ports
 
@@ -371,6 +372,9 @@ def resolve_port_ids(
 
     resolved: dict[str, list[str]] = {}
     unresolved: list[str] = []
+    # Carry the live column name out with the results: the WHERE clause must use
+    # whatever the service actually calls it, not an assumed "portid".
+    resolved_column = id_column
     for key, port in configured.items():
         if port.portwatch_id and (directory[id_column] == port.portwatch_id).any():
             resolved[key] = [port.portwatch_id]
@@ -396,7 +400,7 @@ def resolve_port_ids(
             len(unresolved),
             ", ".join(unresolved),
         )
-    return resolved, unresolved
+    return resolved, unresolved, resolved_column
 
 
 def ingest_ports(
@@ -429,7 +433,7 @@ def ingest_ports(
     from ..storage import write_vintage
 
     if where is None and not all_ports:
-        resolved, unresolved = resolve_port_ids(layer_url)
+        resolved, unresolved, id_column = resolve_port_ids(layer_url)
         if not resolved:
             raise RuntimeError(
                 "none of the ports in config/ports.yaml matched the live PortWatch "
@@ -438,7 +442,7 @@ def ingest_ports(
             )
         identifiers = sorted({value for values in resolved.values() for value in values})
         quoted = ", ".join(f"'{value}'" for value in identifiers)
-        where = f"portid IN ({quoted})"
+        where = f"{id_column} IN ({quoted})"
         logger.info(
             "stage=portwatch.ingest_ports filtering to %d port id(s) from %d configured entries",
             len(identifiers),

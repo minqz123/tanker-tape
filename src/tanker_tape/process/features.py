@@ -364,6 +364,14 @@ def resolve_configured_ports(
     if port_daily is None or port_daily.empty:
         return pd.DataFrame(columns=["port_id", "port_key", "group"]), list(configured)
 
+    missing = [column for column in ("port_id", "port_name") if column not in port_daily.columns]
+    if missing:
+        raise KeyError(
+            f"port table is missing {missing}; it must be passed through "
+            "portwatch.normalise_daily_table(frame, 'port') first, which is what creates "
+            f"those columns. Got: {sorted(port_daily.columns)}"
+        )
+
     names = port_daily.loc[:, ["port_id", "port_name"]].drop_duplicates()
     lowered = names["port_name"].str.lower()
 

@@ -46,6 +46,50 @@ logger = get_logger(__name__)
 MAX_LADEN_STALENESS_DAYS = 30
 
 
+def ensure_zone_keys(positions: pd.DataFrame, zones: dict[str, Zone]) -> pd.DataFrame:
+    """Fill in ``zone_key`` geometrically wherever the collector did not tag it.
+
+    The collector stamps each message with the zone it fell in, but frames read from
+    elsewhere (a manual export, another collector, a test) may not carry the column.
+    Trusting a missing tag silently attributes every position to ``outside_zones``,
+    which splits one zone-day into two rows in the combined table and makes the
+    data-quality panel report zero collected positions for a zone whose transit count
+    is plainly non-zero.
+
+    Args:
+        positions: Position reports with ``lon`` and ``lat``.
+        zones: Zones to test membership against.
+
+    Returns:
+        A copy with ``zone_key`` present and filled where a polygon contains the point.
+    """
+    from .vessel_state import _points_in_polygon
+
+    out = positions.copy()
+    if "zone_key" not in out.columns:
+        out["zone_key"] = pd.Series([None] * len(out), index=out.index, dtype="object")
+
+    missing = out["zone_key"].isna()
+    if not missing.any():
+        return out
+
+    for key, zone in zones.items():
+        still_missing = out["zone_key"].isna()
+        if not still_missing.any():
+            break
+        inside = _points_in_polygon(out["lon"], out["lat"], zone) & still_missing
+        out.loc[inside, "zone_key"] = key
+
+    filled = int(missing.sum() - out["zone_key"].isna().sum())
+    if filled:
+        logger.info(
+            "stage=ais_metrics.ensure_zone_keys filled=%d still_untagged=%d",
+            filled,
+            int(out["zone_key"].isna().sum()),
+        )
+    return out
+
+
 def _positions_near_zone(positions: pd.DataFrame, zone: Zone) -> pd.DataFrame:
     """Restrict positions to a zone's bounding box.
 
@@ -318,6 +362,7 @@ def compute_ais_metrics(
 
     positions = positions.copy()
     positions["timestamp"] = pd.to_datetime(positions["timestamp"], utc=True)
+    positions = ensure_zone_keys(positions, zones)
 
     flagged = flag_quality(positions)
     # Flagged rows are excluded from the *counts* but never from the quality

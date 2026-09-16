@@ -291,3 +291,69 @@ def test_read_partitions_on_missing_dataset_returns_empty(isolated_data_dir):
     from tanker_tape.storage import read_partitions
 
     assert read_partitions("never_collected").empty
+
+
+def test_zone_keys_are_derived_when_the_collector_tag_is_missing(zones, base_time):
+    """Regression: an absent zone_key column must not become 'outside_zones'.
+
+    Trusting a missing tag split one zone-day into two rows in the combined table and
+    made the quality panel report zero collected positions for a zone that plainly had
+    transits.
+    """
+    from tanker_tape.process.ais_metrics import ensure_zone_keys
+
+    positions = pd.DataFrame(
+        {
+            "mmsi": [1, 2],
+            "timestamp": [base_time, base_time],
+            "lon": [56.2, 56.21],  # inside the Hormuz polygon
+            "lat": [26.6, 26.61],
+        }
+    )
+
+    tagged = ensure_zone_keys(positions, zones)
+
+    assert (tagged["zone_key"] == "hormuz").all()
+
+
+def test_points_outside_every_polygon_stay_untagged(zones, base_time):
+    from tanker_tape.process.ais_metrics import ensure_zone_keys
+
+    positions = pd.DataFrame({"mmsi": [1], "timestamp": [base_time], "lon": [0.0], "lat": [0.0]})
+
+    tagged = ensure_zone_keys(positions, zones)
+
+    assert tagged["zone_key"].isna().all()
+
+
+def test_an_existing_collector_tag_is_not_overwritten(zones, base_time):
+    from tanker_tape.process.ais_metrics import ensure_zone_keys
+
+    positions = pd.DataFrame(
+        {
+            "mmsi": [1],
+            "timestamp": [base_time],
+            "lon": [56.2],
+            "lat": [26.6],
+            "zone_key": ["already_tagged"],
+        }
+    )
+
+    assert ensure_zone_keys(positions, zones)["zone_key"].iloc[0] == "already_tagged"
+
+
+def test_combined_table_has_one_row_per_zone_day(zones, base_time):
+    """The symptom the zone_key bug produced: duplicated zone-days."""
+    positions = pd.DataFrame(
+        {
+            "mmsi": [1, 1],
+            "timestamp": [base_time, base_time + pd.Timedelta(hours=1)],
+            "lon": [56.2, 56.21],
+            "lat": [26.6, 26.61],
+        }
+    )
+
+    combined = compute_ais_metrics(positions, None, zones=zones)["ais_daily"]
+
+    assert len(combined) == len(combined.drop_duplicates(subset=["date", "zone_key"]))
+    assert "outside_zones" not in set(combined["zone_key"])

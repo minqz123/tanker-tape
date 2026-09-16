@@ -27,9 +27,14 @@ readily as a positive one.
 
 ## Status
 
-Scaffold complete; **no data has been collected yet**. The ingestion, processing, and
-analysis modules are implemented and unit-tested against synthetic fixtures, but the
-endpoints they call have not all been reached from a networked machine. Start here:
+Pipeline complete and wired end to end; **no data has been collected yet**. Every module is
+implemented and unit-tested, and the first scheduled run (2026-09-16) confirmed the
+PortWatch endpoints work — the chokepoints layer pulled cleanly in 13 seconds. That run also
+showed the ports layer is over 1.6 million rows, so it is now filtered server-side to the
+terminals in `config/ports.yaml`. See the endpoint verification log in
+[`CLAUDE.md`](CLAUDE.md) for what is confirmed live and what is still assumed.
+
+Start here:
 
 ```bash
 uv sync --all-extras
@@ -38,10 +43,9 @@ uv run tanker-tape verify-endpoints   # confirms live URLs and schemas
 uv run tanker-tape validate-gates     # geometry check, no network needed
 ```
 
-`verify-endpoints` exists because several URLs in the source brief were gathered from
-research and could not be confirmed from the build environment. See the endpoint
-verification log in [`CLAUDE.md`](CLAUDE.md) for exactly which ones are confirmed and
-which are not.
+`verify-endpoints` exists because the URLs in the source brief were gathered from research
+rather than observed. It prints what each endpoint actually returns, including the live
+field names, so the schema-tolerant parsers can be pointed at real columns.
 
 ## Quickstart
 
